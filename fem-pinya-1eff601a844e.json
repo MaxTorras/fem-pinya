@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "fem-pinya",
+  "private_key_id": "1eff601a844e75f0dfe6d7529143b7e944df0712",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDR6xiCBbwOYgtZ\nF0j05wn6+L2MwGnGwbd5bjxW67giokmpsZQSJaSYyy07JvyExSwY1UrFlpCcFSot\nq0GUMFg2Fwk18nRWGcKVVHjuJYA7K7JReD22+76LAMyIYy/QauU5PgSCIyZziN+B\nFf1jIBrVbkp0IUdQJE59rBM5SBklR5uGxXpM1rICST9IX56vgPGPUR6A6kP5ttSc\n3yTQ3HNBsnOVrd71xGZrkoE9ihx4DMvoGg9u9zSQoq7ZbWh7JlbbaKtE8Ak1Scv6\nj7TcAlZVLxDY/SsFSz3p7OdzjLnNIFoXbpQpv8j8uG5lbTVr687I8fnw4jJDzZDt\nxozqnYfNAgMBAAECggEAA3gKGKP1nps6Kse6uelTfeU8ZKYNWW58FLKgpqMQkOnz\no60+kCo1FR1OawrS43LKrsJfkPJTA3FKGCUbWVKPMp2g1lZiW8XjNEqIEQ9nlhK7\nyKLfCjYQyQVDXAGfmacakJ6YvnnMOd6KKvztCgVOzDYdXtvp7MYc0fDVBH5PhBEq\nMrSUNLLhc1St4mpgzJlxzSwrcmq8F5xZHTxN9sb6LK9LS4SQQscCUKU5X+DadSfy\nZxutyXf1Z+NJnkLMH7AHaXM8/Lb9daNQdqq/e5Y8j6xzpi5hMZ6oWm1Qs+vV6JVe\nkKclR3QOOqYV6R8vFnIkr9Q91NRrNA81AbEIrr8T9QKBgQDxpQdc4P73G3Z+mdlO\nXRhRDRQN5Gg/Y+CUKyX+sDF/mA0F4Se0OErIQoInzLfpu6XXo+Z9Lbw+ZvIPGQmt\npkyadthbyMe6KDIxN7v8yGOH6NFrGCj6D07u0BSi+nJJtXR3T4iH77/VptyABp7w\nk6EzMfm2KKjQLO4RrDTvMq5mvwKBgQDeY5F1wwvvVAAWOqLdckMvIvvp8VNUovhb\nBGqfm5l4lp//H6NLR7GePflqb5XXfaptR7pVO9qMTPusYuvLQ3DCbOtzMIVmxvDQ\nbH+IP6dH8a5pzKQeDPMYtqS0sqcf3EY1CTVAUzahJRchYSWuHyalhjQmN7yRBBoa\nlQBj23KgcwKBgQCXokxVfybfn48i8J4Ja6fHrKJJ+WtlY+JYeB8WjC/zdlGtv9Uv\nZSegNQQBv5glBsiR4drP8HQw4F7DFJ4bJsDpKOyp4/tZGMIuWmAPxxuV/IX1YyrL\nh/GrME3S27/9+uzDtdfiHZNOma/CcuUn6Cv+uTyOj0MnpxoZYuuwsif4dwKBgF1U\njAdQBAI8zoyFrzQgb/GoTPCxRreObYxFHjo9ovrou9zl+jHttK0kdTgl/EyjgJK8\nN4btx5p59GU0XqC/fOMbsvR0uIeZlhbiceNMU3fuBbSBHZ8+8Aa/IAB1uY21dAFu\nC9sjERov5rUrgBTDHgT5fYlMeuahQhNF1RQTVNfhAoGBAIYeC5ku+lFszPVkEVZU\nQS5LVH56wjY5PeEVlgu6RhoWJUu6cKc1a9pmlhW2fSuU40XcfeCJLPKYUCGuYjAy\nEPx7Doc/AsIUuCUGGGxTdrMK6tG0I+hUyWq+YEa0ahxgb3z0sqv9uzmNcIjrX6UC\nsylCB0+3IfV/NrRZ4POcdi6O\n-----END PRIVATE KEY-----\n",
+  "client_email": "attendy-service@fem-pinya.iam.gserviceaccount.com",
+  "client_id": "105711615090227325873",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/attendy-service%40fem-pinya.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

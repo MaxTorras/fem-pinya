@@ -4,10 +4,25 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const { oldNickname, newNickname, name, surname, oldPassword, newPassword } =
-      await req.json();
+    const {
+      oldNickname,
+      newNickname,
+      name,
+      surname,
+      oldPassword,
+      newPassword,
+    }: {
+      oldNickname: string;
+      newNickname?: string;
+      name?: string;
+      surname?: string;
+      oldPassword?: string;
+      newPassword?: string;
+    } = await req.json();
 
-    if (!oldNickname) return NextResponse.json({ error: "Missing nickname" }, { status: 400 });
+    if (!oldNickname) {
+      return NextResponse.json({ error: "Missing nickname" }, { status: 400 });
+    }
 
     const auth = new google.auth.JWT({
       email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -17,37 +32,36 @@ export async function POST(req: Request) {
 
     const sheets = google.sheets({ version: "v4", auth });
     const sheetId = process.env.GOOGLE_SHEET_ID!;
-    const range = "Members!A2:D"; // includes nickname, password, name, surname
+    const range = "Members!A2:D";
 
-    // Fetch members
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range,
     });
 
-    const rows = result.data.values || [];
-    const rowIndex = rows.findIndex(
-      (r) => r[0]?.toLowerCase() === oldNickname.toLowerCase()
-    );
+    const rows: string[][] = result.data.values || [];
+    const rowIndex = rows.findIndex((r) => r[0]?.toLowerCase() === oldNickname.toLowerCase());
 
-    if (rowIndex === -1) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (rowIndex === -1) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
     const currentRow = rows[rowIndex];
-    let [currentNickname, currentHash, currentName, currentSurname] = currentRow;
+    const [currentNickname, currentName = "", currentSurname = ""] = currentRow;
+    let currentHash = currentRow[1];
 
-    // Password change
+    // Password update
     if (oldPassword && newPassword) {
       const match = await bcrypt.compare(oldPassword, currentHash);
       if (!match) return NextResponse.json({ error: "Old password incorrect" }, { status: 401 });
       currentHash = await bcrypt.hash(newPassword, 10);
     }
 
-    // Prepare updated row
     const updatedRow = [
       newNickname || currentNickname,
       currentHash,
-      name || currentName || "",
-      surname || currentSurname || "",
+      name || currentName,
+      surname || currentSurname,
     ];
 
     await sheets.spreadsheets.values.update({
@@ -58,8 +72,9 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ message: "Profile updated!" });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(err);
-    return NextResponse.json({ error: "Server error", details: err.message }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: "Server error", details: message }, { status: 500 });
   }
 }

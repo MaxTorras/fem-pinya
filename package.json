@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "googleapis": "^161.0.0",
     "next": "15.5.4",
     "qrcode": "^1.5.4",

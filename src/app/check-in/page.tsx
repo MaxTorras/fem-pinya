@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function CheckIn() {
   const [nickname, setNickname] = useState("");
@@ -8,6 +9,7 @@ export default function CheckIn() {
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const router = useRouter();
 
   // Fetch existing members for suggestions
   useEffect(() => {
@@ -44,9 +46,9 @@ export default function CheckIn() {
 
     setLoading(true);
     setStatus("");
-
     const params = new URLSearchParams(window.location.search);
     const date = params.get("date") || new Date().toISOString();
+
 
     try {
       const res = await fetch("/api/attendance", {
@@ -70,7 +72,7 @@ export default function CheckIn() {
     }
   };
 
-  return (
+   return (
     <div className="flex flex-col items-center gap-2 p-6">
       <h1 className="text-2xl font-bold">Check In</h1>
 
@@ -82,14 +84,16 @@ export default function CheckIn() {
         className="border rounded p-2 w-64 text-center"
       />
 
-      {/* Suggestions dropdown */}
       {suggestions.length > 0 && (
         <ul className="border rounded w-64 max-h-32 overflow-auto bg-white z-10">
           {suggestions.map((s) => (
             <li
               key={s}
               className="p-1 cursor-pointer hover:bg-gray-200"
-              onClick={() => handleSelectSuggestion(s)}
+              onClick={() => {
+                setNickname(s);
+                setSuggestions([]);
+              }}
             >
               {s}
             </li>
@@ -97,13 +101,22 @@ export default function CheckIn() {
         </ul>
       )}
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50 mt-2"
-      >
-        {loading ? "Submitting..." : "Check In"}
-      </button>
+       <div className="flex gap-2 mt-2">
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+        >
+          {loading ? "Submitting..." : "Check In"}
+        </button>
+
+        <button
+          onClick={() => router.push("/profile")}
+          className="bg-gray-600 text-white px-4 py-2 rounded"
+        >
+          Edit Profile
+        </button>
+      </div>
 
       {status && <p className="text-center">{status}</p>}
     </div>

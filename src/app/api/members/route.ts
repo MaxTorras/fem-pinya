@@ -13,7 +13,7 @@ export async function GET() {
 
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: "members!A:A",
+      range: "Members!A:A",
     });
 
     const members = res.data.values?.flat() || [];

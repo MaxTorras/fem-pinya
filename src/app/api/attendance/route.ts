@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     // 1️⃣ Fetch existing members
     const membersSheet = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: "members!A:A",
+      range: "Members!A:A",
     });
 
     const existingMembers: string[] = membersSheet.data.values?.flat() || [];
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     if (!existingMembers.includes(memberNickname)) {
       await sheets.spreadsheets.values.append({
         spreadsheetId: process.env.GOOGLE_SHEET_ID,
-        range: "members!A1",
+        range: "Members!A2",
         valueInputOption: "USER_ENTERED",
         insertDataOption: "INSERT_ROWS",
         requestBody: { values: [[memberNickname]] },

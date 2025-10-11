@@ -12,10 +12,12 @@
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "googleapis": "^161.0.0",
+    "lucide-react": "^0.545.0",
     "next": "15.5.4",
     "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "recharts": "^3.2.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

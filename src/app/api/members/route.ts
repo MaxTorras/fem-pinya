@@ -1,5 +1,6 @@
-import { google } from "googleapis";
+// src/app/api/members/route.ts
 import { NextResponse } from "next/server";
+import { google } from "googleapis";
 
 export async function GET() {
   try {
@@ -11,19 +12,26 @@ export async function GET() {
 
     const sheets = google.sheets({ version: "v4", auth });
     const sheetId = process.env.GOOGLE_SHEET_ID!;
-    const range = "Members!A2:A";
+
+    const range = "Members!A2:E"; // <-- Added E for Position
 
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range,
     });
 
-    const members = result.data.values?.map((r) => r[0]) || [];
+    const rows = result.data.values || [];
+    const members = rows.map(([nickname, passwordHash, name, surname, position]) => ({
+      nickname,
+      passwordHash,
+      name,
+      surname,
+      position: position || "Unknown",
+    }));
 
     return NextResponse.json({ members });
-  } catch (err: unknown) {
+  } catch (err) {
     console.error(err);
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: "Server error", details: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });
   }
 }

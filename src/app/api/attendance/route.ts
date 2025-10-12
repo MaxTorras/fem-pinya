@@ -1,8 +1,13 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
-export async function GET() {
+export async function POST(req: Request) {
   try {
+    const { memberNickname, date } = await req.json();
+    if (!memberNickname || !date) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
     const auth = new google.auth.JWT({
       email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
       key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
@@ -12,24 +17,27 @@ export async function GET() {
     const sheets = google.sheets({ version: "v4", auth });
     const sheetId = process.env.GOOGLE_SHEET_ID!;
 
-    // ✅ read from the correct sheet
-    const range = "attendance!A2:C"; 
+    // Format date DD-MM-YYYY
+    const jsDate = new Date(date);
+    const formattedDate = `${String(jsDate.getDate()).padStart(2, "0")}-${String(
+      jsDate.getMonth() + 1
+    ).padStart(2, "0")}-${jsDate.getFullYear()}`;
 
-    const result = await sheets.spreadsheets.values.get({
+    // Append new attendance record
+    await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range,
+      range: "attendance!A1",
+      valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: {
+        values: [[formattedDate, memberNickname, new Date().toISOString()]],
+      },
     });
 
-    const rows = result.data.values || [];
-    const records = rows.map(([date, nickname, timestamp]) => ({
-      date,
-      nickname,
-      timestamp,
-    }));
-
-    return NextResponse.json({ records });
+    return NextResponse.json({ message: "Attendance recorded" });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Failed to fetch attendance" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to record attendance" }, { status: 500 });
   }
 }
+

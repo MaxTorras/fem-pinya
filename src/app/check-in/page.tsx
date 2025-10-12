@@ -2,12 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Quicksand } from "next/font/google";
+
+const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
+
+type Member = {
+  nickname: string;
+  name?: string;
+  surname?: string;
+  position?: string;
+};
 
 export default function CheckIn() {
   const [nickname, setNickname] = useState("");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
-  const [members, setMembers] = useState<string[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const router = useRouter();
 
@@ -28,8 +38,12 @@ export default function CheckIn() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNickname(e.target.value);
     const query = e.target.value.toLowerCase();
+
+    // Only use nicknames for suggestions
     setSuggestions(
-      members.filter((m) => m.toLowerCase().includes(query) && query.length > 0)
+      members
+        .map((m) => m.nickname)
+        .filter((n) => n.toLowerCase().includes(query) && query.length > 0)
     );
   };
 
@@ -48,7 +62,6 @@ export default function CheckIn() {
     setStatus("");
     const params = new URLSearchParams(window.location.search);
     const date = params.get("date") || new Date().toISOString();
-
 
     try {
       const res = await fetch("/api/attendance", {
@@ -72,28 +85,27 @@ export default function CheckIn() {
     }
   };
 
-   return (
-    <div className="flex flex-col items-center gap-2 p-6">
-      <h1 className="text-2xl font-bold">Check In</h1>
+  return (
+    <main
+      className={`${quicksand.className} flex flex-col items-center p-6 min-h-screen bg-white`}
+    >
+      <h1 className="text-3xl font-bold text-[#2f2484] mb-6">Check In</h1>
 
       <input
         type="text"
         placeholder="Your nickname"
         value={nickname}
         onChange={handleChange}
-        className="border rounded p-2 w-64 text-center"
+        className="border-2 border-[#2f2484] rounded p-3 w-64 text-center focus:outline-none focus:ring-2 focus:ring-yellow-400"
       />
 
       {suggestions.length > 0 && (
-        <ul className="border rounded w-64 max-h-32 overflow-auto bg-white z-10">
+        <ul className="border border-[#2f2484] rounded w-64 max-h-32 overflow-auto bg-white z-10 mt-2 shadow-lg">
           {suggestions.map((s) => (
             <li
               key={s}
-              className="p-1 cursor-pointer hover:bg-gray-200"
-              onClick={() => {
-                setNickname(s);
-                setSuggestions([]);
-              }}
+              className="p-2 cursor-pointer hover:bg-yellow-100"
+              onClick={() => handleSelectSuggestion(s)}
             >
               {s}
             </li>
@@ -101,24 +113,36 @@ export default function CheckIn() {
         </ul>
       )}
 
-       <div className="flex gap-2 mt-2">
+      <div className="flex gap-4 mt-4">
         <button
           onClick={handleSubmit}
           disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+          className="bg-[#2f2484] text-white px-6 py-2 rounded font-semibold hover:bg-yellow-400 hover:text-[#2f2484] transition"
         >
           {loading ? "Submitting..." : "Check In"}
         </button>
 
         <button
           onClick={() => router.push("/profile")}
-          className="bg-gray-600 text-white px-4 py-2 rounded"
+          className="bg-gray-200 text-gray-800 px-6 py-2 rounded font-semibold hover:bg-yellow-100 transition"
         >
           Edit Profile
         </button>
       </div>
 
-      {status && <p className="text-center">{status}</p>}
-    </div>
+      {status && (
+        <p
+          className={`mt-4 font-medium ${
+            status.includes("✅")
+              ? "text-green-600"
+              : status.includes("⚠️")
+              ? "text-yellow-600"
+              : "text-red-600"
+          }`}
+        >
+          {status}
+        </p>
+      )}
+    </main>
   );
 }

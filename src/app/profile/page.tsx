@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Quicksand } from "next/font/google";
+
+const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
 export default function ProfilePage() {
   const [nickname, setNickname] = useState("");
@@ -61,9 +64,15 @@ export default function ProfilePage() {
     else setMessage(`❌ ${data.error}`);
   };
 
+  const inputClass =
+    "border-2 border-[#2f2484] rounded p-3 w-64 text-center focus:outline-none focus:ring-2 focus:ring-yellow-400";
+
+  const buttonClass =
+    "px-6 py-2 rounded font-semibold transition";
+
   return (
-    <div className="flex flex-col items-center gap-3 p-6">
-      <h1 className="text-2xl font-bold">Profile</h1>
+    <main className={`${quicksand.className} flex flex-col items-center p-6 min-h-screen bg-white`}>
+      <h1 className="text-3xl font-bold text-[#2f2484] mb-6">Profile</h1>
 
       {!loggedIn ? (
         <>
@@ -72,16 +81,16 @@ export default function ProfilePage() {
             placeholder="Nickname"
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
-            className="border rounded p-2 w-64 text-center"
+            className={inputClass}
           />
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="border rounded p-2 w-64 text-center"
+            className={inputClass}
           />
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-sm mt-1">
             <input
               type="checkbox"
               checked={showPassword}
@@ -91,7 +100,7 @@ export default function ProfilePage() {
           </label>
           <button
             onClick={handleLogin}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
+            className={`${buttonClass} bg-[#2f2484] text-white mt-4 hover:bg-yellow-400 hover:text-[#2f2484]`}
           >
             Log In
           </button>
@@ -103,47 +112,47 @@ export default function ProfilePage() {
             value={newNickname}
             onChange={(e) => setNewNickname(e.target.value)}
             placeholder="Nickname"
-            className="border rounded p-2 w-64 text-center"
+            className={inputClass}
           />
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Name"
-            className="border rounded p-2 w-64 text-center"
+            className={inputClass}
           />
           <input
             type="text"
             value={surname}
             onChange={(e) => setSurname(e.target.value)}
             placeholder="Surname"
-            className="border rounded p-2 w-64 text-center"
+            className={inputClass}
           />
 
-          <hr className="w-64 my-2 border-gray-300" />
-          <h2 className="text-lg font-semibold">Change Password</h2>
+          <hr className="w-64 my-3 border-gray-300" />
+          <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Change Password</h2>
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Old Password"
             value={oldPassword}
             onChange={(e) => setOldPassword(e.target.value)}
-            className="border rounded p-2 w-64 text-center"
+            className={inputClass}
           />
           <input
             type={showPassword ? "text" : "password"}
             placeholder="New Password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="border rounded p-2 w-64 text-center"
+            className={inputClass}
           />
           <input
             type={showPassword ? "text" : "password"}
             placeholder="Confirm New Password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="border rounded p-2 w-64 text-center"
+            className={inputClass}
           />
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-sm mt-1">
             <input
               type="checkbox"
               checked={showPassword}
@@ -154,14 +163,26 @@ export default function ProfilePage() {
 
           <button
             onClick={handleUpdate}
-            className="bg-green-600 text-white px-4 py-2 rounded mt-2"
+            className={`${buttonClass} bg-yellow-400 text-[#2f2484] mt-4 hover:bg-[#2f2484] hover:text-yellow-400`}
           >
             Save Changes
           </button>
         </>
       )}
 
-      {message && <p className="mt-2 text-center">{message}</p>}
-    </div>
+      {message && (
+        <p
+          className={`mt-4 font-medium ${
+            message.includes("✅")
+              ? "text-green-600"
+              : message.includes("⚠️")
+              ? "text-yellow-600"
+              : "text-red-600"
+          }`}
+        >
+          {message}
+        </p>
+      )}
+    </main>
   );
 }

@@ -9,9 +9,9 @@ export default function AdminKeyButton() {
   return (
     <button
       onClick={() => router.push("/admin")}
-      className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-200 transition"
+      className="absolute top-4 right-4 p-2 rounded-full bg-gray-50 text-gray-700 shadow-md hover:bg-[#2f2484] hover:text-yellow-400 transition-colors duration-200"
     >
-      <KeyRound className="w-6 h-6 text-gray-700" />
+      <KeyRound className="w-6 h-6" />
     </button>
   );
 }

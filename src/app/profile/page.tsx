@@ -82,7 +82,7 @@ export default function ProfilePage() {
       {!loggedIn ? (
         <>
           <input type="text" placeholder="Nickname" value={nickname} onChange={(e) => setNickname(e.target.value)} className={inputClass} />
-          <input type={showPassword ? "text" : "password"} placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} />
+          <input type={showPassword ? "text" : "password"} placeholder="Default Password: fempinya" value={password} onChange={(e) => setPassword(e.target.value)} className={inputClass} />
           <label className="flex items-center gap-2 text-sm mt-1">
             <input type="checkbox" checked={showPassword} onChange={() => setShowPassword(!showPassword)} />
             Show password

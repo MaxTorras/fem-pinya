@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Fixed header */}
         <header className="flex items-center bg-[#2f2484] text-white p-4 shadow-md">
           <img src="/logo.png" alt="Colla Logo" className="h-10 w-auto mr-3" />
-          <h1 className="font-semibold text-lg">Colla Castellera d'Edinburgh</h1>
+          <h1 className="font-semibold text-lg">Colla Castellera Edinburgh</h1>
         </header>
 
         {/* Admin key button (floating) */}

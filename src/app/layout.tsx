@@ -21,11 +21,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* PWA meta tags */}
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#2f2484" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Fem Pinya" />
-        <link rel="apple-touch-icon" href="/icons/icon-512x512.png" />
+  <meta name="theme-color" content="#2f2484" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fem Pinya" />
+  <link rel="apple-touch-icon" href="/icons/icon-512x512.png" />
       </head>
 
       <body className={`${quicksand.className} relative min-h-screen bg-gray-50 text-gray-900`}>

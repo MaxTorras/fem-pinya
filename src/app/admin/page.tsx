@@ -294,12 +294,24 @@ export default function AdminPage() {
     <div key={pos} className="border-2 border-[#2f2484] rounded p-3">
       <h3 className="mb-2">{displayPos}</h3>
       <ul className="text-sm text-gray-700 list-disc list-inside">
-        {list.map(({ member, rawNickname }) => (
-          <li key={rawNickname}>
-            {member ? `${member.name || member.nickname} ${member.surname || ""}`.trim() : rawNickname}{" "}
-            <span className="text-gray-500 text-xs">({rawNickname})</span>
-          </li>
-        ))}
+       {list.map(({ member, rawNickname }) => {
+  return (
+    <li key={rawNickname}>
+      {member ? (
+        <>
+          <span>{member.nickname}</span>
+          {(member.name || member.surname) && (
+            <span className="text-gray-500 text-sm ml-1">
+              ({member.name || ""} {member.surname || ""})
+            </span>
+          )}
+        </>
+      ) : (
+        <span>{rawNickname}</span>
+      )}
+    </li>
+  );
+})}
       </ul>
     </div>
   );

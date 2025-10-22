@@ -1,9 +1,42 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
-// 🟩 GET — fetch attendance records for the admin page
-export async function GET() {
+// 🟩 Helper to normalize date to DD-MM-YYYY
+function normalizeDate(input: string) {
+  let day: string, month: string, year: string;
+
+  // Check if input is already in DD-MM-YYYY
+  const match = input.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (match) {
+    [ , day, month, year ] = match;
+    return `${day}-${month}-${year}`;
+  }
+
+  // If input is ISO (YYYY-MM-DD)
+  const isoMatch = input.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    [ , year, month, day ] = isoMatch;
+    return `${day}-${month}-${year}`;
+  }
+
+  // Fallback: try creating a Date object
+  const jsDate = new Date(input);
+  if (isNaN(jsDate.getTime())) throw new Error("Invalid date input");
+
+  const local = new Date(jsDate.toLocaleString("en-GB", { timeZone: "Europe/London" }));
+  day = String(local.getDate()).padStart(2, "0");
+  month = String(local.getMonth() + 1).padStart(2, "0");
+  year = String(local.getFullYear());
+
+  return `${day}-${month}-${year}`;
+}
+
+// 🟩 GET — fetch attendance records (optionally filtered by date)
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const dateParam = searchParams.get("date");
+
     const auth = new google.auth.JWT({
       email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
       key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
@@ -12,7 +45,7 @@ export async function GET() {
 
     const sheets = google.sheets({ version: "v4", auth });
     const sheetId = process.env.GOOGLE_SHEET_ID!;
-    const range = "attendance!A2:C"; // A: Date, B: Nickname, C: Timestamp
+    const range = "attendance!A2:C";
 
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
@@ -26,6 +59,12 @@ export async function GET() {
       timestamp,
     }));
 
+    if (dateParam) {
+      const formatted = normalizeDate(dateParam);
+      const filtered = records.filter((r) => r.date === formatted);
+      return NextResponse.json({ records: filtered });
+    }
+
     return NextResponse.json({ records });
   } catch (err) {
     console.error(err);
@@ -33,13 +72,15 @@ export async function GET() {
   }
 }
 
-// 🟦 POST — add a new attendance record when someone checks in
+// 🟦 POST — add new attendance record, prevent duplicates
 export async function POST(req: Request) {
   try {
     const { memberNickname, date } = await req.json();
     if (!memberNickname || !date) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
+
+    const formattedDate = normalizeDate(date);
 
     const auth = new google.auth.JWT({
       email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -50,20 +91,34 @@ export async function POST(req: Request) {
     const sheets = google.sheets({ version: "v4", auth });
     const sheetId = process.env.GOOGLE_SHEET_ID!;
 
-    // Format date as DD-MM-YYYY
-    const jsDate = new Date(date);
-    const formattedDate = `${String(jsDate.getDate()).padStart(2, "0")}-${String(
-      jsDate.getMonth() + 1
-    ).padStart(2, "0")}-${jsDate.getFullYear()}`;
+    // 🛑 Check for duplicates
+    const existing = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: "attendance!A2:C",
+    });
 
-    // Append new attendance record
+    const rows = existing.data.values || [];
+    const alreadyCheckedIn = rows.some(
+      ([d, nickname]) =>
+        d?.trim() === formattedDate &&
+        nickname?.toLowerCase().trim() === memberNickname.toLowerCase().trim()
+    );
+
+    if (alreadyCheckedIn) {
+      return NextResponse.json(
+        { error: "You’ve already checked in today!" },
+        { status: 400 }
+      );
+    }
+
+    // ✅ Append new attendance record
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
       range: "attendance!A1",
       valueInputOption: "USER_ENTERED",
       insertDataOption: "INSERT_ROWS",
       requestBody: {
-        values: [[formattedDate, memberNickname, new Date().toISOString()]],
+        values: [[formattedDate, memberNickname.trim(), new Date().toISOString()]],
       },
     });
 

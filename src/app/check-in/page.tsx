@@ -51,6 +51,7 @@ export default function CheckIn() {
     setNickname(name);
     setSuggestions([]);
   };
+  
 
   const handleSubmit = async () => {
     if (!nickname) {
@@ -59,31 +60,48 @@ export default function CheckIn() {
     }
 
     setLoading(true);
-    setStatus("");
-    const params = new URLSearchParams(window.location.search);
-    const date = params.get("date") || new Date().toISOString();
+  setStatus("");
+  const params = new URLSearchParams(window.location.search);
+  const date = params.get("date") || new Date().toISOString().split("T")[0]; // only date part
 
-    try {
-      const res = await fetch("/api/attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberNickname: nickname, date }),
-      });
+   try {
+    // 1️⃣ Fetch current attendance for that day
+    const attendanceRes = await fetch(`/api/attendance?date=${date}`);
+    const attendanceData = await attendanceRes.json();
 
-      if (res.ok) {
-        setStatus("✅ Attendance recorded!");
-        setNickname("");
-        setSuggestions([]);
-      } else {
-        const data = await res.json();
-        setStatus(`❌ ${data.error || "Try again"}`);
-      }
-    } catch {
-      setStatus("🚨 Network error.");
-    } finally {
+    const alreadyCheckedIn = attendanceData.records?.some(
+      (r: { nickname: string }) =>
+        r.nickname.toLowerCase() === nickname.toLowerCase()
+    );
+
+    if (alreadyCheckedIn) {
+      setStatus("⚠️ You’ve already checked in today!");
       setLoading(false);
+      return;
     }
-  };
+
+    // 2️⃣ Proceed to check in
+    const res = await fetch("/api/attendance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ memberNickname: nickname, date }),
+    });
+
+    if (res.ok) {
+      setStatus("✅ Attendance recorded!");
+      setNickname("");
+      setSuggestions([]);
+    } else {
+      const data = await res.json();
+      setStatus(`❌ ${data.error || "Try again"}`);
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus("🚨 Network error.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <main

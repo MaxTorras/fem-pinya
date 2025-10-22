@@ -143,18 +143,22 @@ export default function AdminPage() {
 
   // ---- Group by position ----
   const membersByPosition = useMemo(() => {
-    return attendance
-      .filter((r) => r.date === selectedDate)
-      .reduce<Record<string, Member[]>>((acc, record) => {
-        const member = members.find(
-          (m) => m.nickname.toLowerCase() === record.nickname.toLowerCase()
-        );
-        const pos = member?.position || "Unknown";
-        if (!acc[pos]) acc[pos] = [];
-        if (member) acc[pos].push(member);
-        return acc;
-      }, {});
-  }, [attendance, members, selectedDate]);
+  return attendance
+    .filter((r) => r.date === selectedDate)
+    .reduce<Record<string, { member?: Member; rawNickname: string }[]>>((acc, record) => {
+      const member = members.find(
+        (m) => m.nickname.toLowerCase().trim() === record.nickname.toLowerCase().trim()
+      );
+
+      // Determine the position key
+      const pos = member?.position && member.position.trim() !== "" ? member.position : "Unknown";
+
+      if (!acc[pos]) acc[pos] = [];
+
+      acc[pos].push({ member, rawNickname: record.nickname });
+      return acc;
+    }, {});
+}, [attendance, members, selectedDate]);
 
   // ---- Stats tab logic (total + streaks) ----
   const attendanceByMember = useMemo(() => {
@@ -269,30 +273,39 @@ export default function AdminPage() {
           ))}
         </ul>
       ) : activeTab === "positions" ? (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Check-ins by Position</h2>
-          <DaySelector
-            dates={attendanceDates}
-            selectedDate={selectedDate}
-            setSelectedDate={setSelectedDate}
-          />
-          {Object.keys(membersByPosition).length === 0 ? (
-            <p>No attendance records for this day.</p>
-          ) : (
-            Object.entries(membersByPosition).map(([pos, list]) => (
-              <div key={pos} className="border-2 border-[#2f2484] rounded p-3">
-                <h3 className="font-semibold text-yellow-500 mb-2">{pos}</h3>
-                <ul className="text-sm text-gray-700 list-disc list-inside">
-                  {list.map((m) => (
-                    <li key={m.nickname}>
-                      {m.name} {m.surname} ({m.nickname})
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))
-          )}
-        </div>
+  <div className="space-y-4">
+    <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Check-ins by Position</h2>
+
+    <DaySelector
+      dates={attendanceDates}
+      selectedDate={selectedDate}
+      setSelectedDate={setSelectedDate}
+    />
+
+    {Object.keys(membersByPosition).length === 0 ? (
+      <p>No attendance records for this day.</p>
+    ) : (
+      Object.entries(membersByPosition).map(([pos, list]) => {
+  const displayPos = pos === "Unknown"
+    ? <span className="text-red-600 font-semibold">⚠️ Missing / Unmatched Position</span>
+    : <span className="text-yellow-500 font-semibold">{pos}</span>;
+
+  return (
+    <div key={pos} className="border-2 border-[#2f2484] rounded p-3">
+      <h3 className="mb-2">{displayPos}</h3>
+      <ul className="text-sm text-gray-700 list-disc list-inside">
+        {list.map(({ member, rawNickname }) => (
+          <li key={rawNickname}>
+            {member ? `${member.name || member.nickname} ${member.surname || ""}`.trim() : rawNickname}{" "}
+            <span className="text-gray-500 text-xs">({rawNickname})</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+})
+    )}
+  </div>
       ) : (
         // ---- Stats Tab ----
         <div className="space-y-4">

@@ -54,17 +54,17 @@ export default function CheckIn() {
   
 
   const handleSubmit = async () => {
-    if (!nickname) {
-      setStatus("⚠️ Please enter your nickname.");
-      return;
-    }
+  if (!nickname) {
+    setStatus("⚠️ Please enter your nickname.");
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
   setStatus("");
   const params = new URLSearchParams(window.location.search);
   const date = params.get("date") || new Date().toISOString().split("T")[0]; // only date part
 
-   try {
+  try {
     // 1️⃣ Fetch current attendance for that day
     const attendanceRes = await fetch(`/api/attendance?date=${date}`);
     const attendanceData = await attendanceRes.json();
@@ -80,7 +80,37 @@ export default function CheckIn() {
       return;
     }
 
-    // 2️⃣ Proceed to check in
+    // 2️⃣ Check if nickname exists in members
+    const memberExists = members.some(
+      (m) => m.nickname.toLowerCase() === nickname.toLowerCase()
+    );
+
+    if (!memberExists) {
+      // Add new member to the members sheet
+      const newMember = {
+        nickname,
+        passwordHash: "",
+        position: "New",
+      };
+
+      const addMemberRes = await fetch("/api/members", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newMember),
+      });
+
+      if (!addMemberRes.ok) {
+        const errData = await addMemberRes.json();
+        setStatus(`❌ Failed to add new member: ${errData.error || "Try again"}`);
+        setLoading(false);
+        return;
+      }
+
+      // Update local state immediately
+      setMembers((prev) => [...prev, newMember]);
+    }
+
+    // 3️⃣ Proceed to check in
     const res = await fetch("/api/attendance", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

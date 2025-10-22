@@ -83,11 +83,15 @@ export default function AdminPage() {
   const attendanceDates = Array.from(new Set(attendance.map((r) => r.date))).sort(
     (a, b) => new Date(b).getTime() - new Date(a).getTime()
   );
-  const [selectedDate, setSelectedDate] = useState(attendanceDates[0] || "");
+  const [selectedDate, setSelectedDate] = useState(
+  attendanceDates[attendanceDates.length - 1] || ""
+);
 
   useEffect(() => {
-    if (!selectedDate && attendanceDates.length > 0) setSelectedDate(attendanceDates[0]);
-  }, [attendanceDates, selectedDate]);
+  if (!selectedDate && attendanceDates.length > 0) {
+    setSelectedDate(attendanceDates[attendanceDates.length - 1]);
+  }
+}, [attendanceDates, selectedDate]);
 
   const handleLogin = async () => {
     setError("");

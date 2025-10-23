@@ -7,6 +7,8 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { TouchBackend } from "react-dnd-touch-backend";
 import { isMobile } from "react-device-detect";
+import * as htmlToImage from 'html-to-image';
+import download from 'downloadjs';
 
 import PinyaNode from "@/components/PinyaNode";
 import AttendanceMember from "@/components/AttendanceMember";
@@ -108,14 +110,13 @@ export default function PinyaPlannerPage() {
     });
 
     setNodes(updated);
-    // remove assigned members from attendance
     const remaining = attendance.filter(
       (m) => !updated.some((n) => n.data.member?.nickname === m.nickname)
     );
     setAttendance(remaining);
   };
 
-  // Save layout
+  // SAVE / LOAD / DELETE / ADD role functions
   const saveLayout = async () => {
     if (!layoutName.trim()) return alert("Please name your layout!");
     const layout: PinyaLayout = {
@@ -153,8 +154,6 @@ export default function PinyaPlannerPage() {
       alert("❌ Error saving layout");
     }
   };
-
-  // Load / delete layout
   const loadLayout = (layout: PinyaLayout) => {
     if (!layout.positions) return;
     const loadedNodes: Node[] = layout.positions.map(p => ({
@@ -181,8 +180,6 @@ export default function PinyaPlannerPage() {
       alert("❌ Error deleting layout");
     }
   };
-
-  // Add role
   const addRole = (role: string) => {
     const id = `${role.toLowerCase()}_${Date.now()}`;
     setNodes(prev => [
@@ -191,6 +188,7 @@ export default function PinyaPlannerPage() {
     ]);
   };
 
+  // Node handlers
   const onNodesChange: OnNodesChange = (changes) => setNodes(nds => applyNodeChanges(changes, nds));
   const nodesWithHandlers = nodes.map(n => ({
     ...n,
@@ -203,7 +201,7 @@ export default function PinyaPlannerPage() {
     },
   }));
 
-  // Organize attendance by position
+  // Organize attendance
   const positionsMap: Record<string, Member[]> = {};
   attendance.forEach(m => {
     const key = m.position || "No role";
@@ -216,6 +214,19 @@ export default function PinyaPlannerPage() {
   const filteredLayouts = selectedFolder
     ? savedLayouts.filter(l => l.folder === selectedFolder)
     : savedLayouts;
+
+  // ✅ Export canvas as image (only ReactFlow)
+  const exportLayoutAsImage = async () => {
+    const canvas = document.querySelector('.reactflow-wrapper') as HTMLElement;
+    if (!canvas) return alert("Canvas not found!");
+    try {
+      const dataUrl = await htmlToImage.toPng(canvas, { cacheBust: true });
+      download(dataUrl, `pinya-layout-${Date.now()}.png`);
+    } catch (err) {
+      console.error("Failed to export layout:", err);
+      alert("❌ Failed to export layout");
+    }
+  };
 
   return (
     <DndProvider backend={isMobile ? TouchBackend : HTML5Backend}>
@@ -234,12 +245,14 @@ export default function PinyaPlannerPage() {
               <input type="text" placeholder="Folder name (optional)" value={folderName} onChange={e => setFolderName(e.target.value)} className="border rounded p-1 w-full text-xs mb-1" />
               <button onClick={saveLayout} className="bg-blue-600 text-white px-2 py-1 rounded w-full text-xs mb-2">💾 Save Layout</button>
 
-              {/* 🧠 Auto Assign Button */}
-              <button
-                onClick={handleAutoAssign}
-                className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700"
-              >
+              {/* 🧠 Auto Assign */}
+              <button onClick={handleAutoAssign} className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700">
                 ⚡ Auto Assign
+              </button>
+
+              {/* 📷 Export */}
+              <button onClick={exportLayoutAsImage} className="bg-purple-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-purple-700">
+                📷 Export Layout
               </button>
 
               {/* Folder filter */}
@@ -275,26 +288,28 @@ export default function PinyaPlannerPage() {
 
         {/* CANVAS */}
         <div className="flex-1 border p-2 relative">
-          <ReactFlow
-            nodes={nodesWithHandlers}
-            onNodesChange={onNodesChange}
-            nodeTypes={nodeTypes}
-            fitView
-            onNodeDragStop={(event, node) => {
-              const trash = document.getElementById("trash-bin");
-              if (!trash) return;
-              const rect = trash.getBoundingClientRect();
-              const clientEvent = event as unknown as MouseEvent | TouchEvent;
-              const x = (clientEvent as MouseEvent).clientX ?? (clientEvent as TouchEvent).touches?.[0]?.clientX;
-              const y = (clientEvent as MouseEvent).clientY ?? (clientEvent as TouchEvent).touches?.[0]?.clientY;
-              if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-                setNodes(prev => prev.filter(n => n.id !== node.id));
-              }
-            }}
-          >
-            <Background />
-            <Controls />
-          </ReactFlow>
+          <div className="reactflow-wrapper h-full w-full">
+            <ReactFlow
+              nodes={nodesWithHandlers}
+              onNodesChange={onNodesChange}
+              nodeTypes={nodeTypes}
+              fitView
+              onNodeDragStop={(event, node) => {
+                const trash = document.getElementById("trash-bin");
+                if (!trash) return;
+                const rect = trash.getBoundingClientRect();
+                const clientEvent = event as unknown as MouseEvent | TouchEvent;
+                const x = (clientEvent as MouseEvent).clientX ?? (clientEvent as TouchEvent).touches?.[0]?.clientX;
+                const y = (clientEvent as MouseEvent).clientY ?? (clientEvent as TouchEvent).touches?.[0]?.clientY;
+                if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                  setNodes(prev => prev.filter(n => n.id !== node.id));
+                }
+              }}
+            >
+              <Background />
+              <Controls />
+            </ReactFlow>
+          </div>
           <TrashBin />
         </div>
 

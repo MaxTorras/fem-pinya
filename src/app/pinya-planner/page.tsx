@@ -10,6 +10,11 @@ import AttendanceMember from "@/components/AttendanceMember";
 import { Member, PinyaLayout } from "@/types/pinya";
 import { OnNodesChange } from "reactflow";
 
+type AttendanceRecord = {
+  nickname: string;
+  // you can add more fields if your API returns them, e.g. date, timestamp
+};
+
 const nodeTypes = { pinya: PinyaNode };
 
 // ✅ Quick role list
@@ -52,7 +57,7 @@ export default function PinyaPlannerPage() {
       .then((res) => res.json())
       .then((data) => {
         const presentMembers = data.records
-          .map((r: any) => members.find((m) => m.nickname === r.nickname))
+          .map((r: AttendanceRecord) => members.find((m) => m.nickname === r.nickname))
           .filter(Boolean) as Member[];
         setAttendance(presentMembers);
       });

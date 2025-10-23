@@ -21,7 +21,7 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
   const rotation = data.rotation ?? 0;
   const ref = useRef<HTMLDivElement>(null);
 
-  // Draggable for trash
+  // Drag for trash
   const [{ isDragging }, drag] = useDrag({
     type: "ROLE_NODE",
     item: { nodeId: data.id },
@@ -46,16 +46,34 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
     }
   }, [drag, drop]);
 
-  // --- COLOR, SIZE & DIMENSIONS ---
-  let bgColor = "bg-blue-500"; // default
-  if (data.label === "Baix") bgColor = "bg-red-500";
-  else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label))
-    bgColor = "bg-yellow-500";
+  // Determine background color
+  let bgColor = "bg-blue-500";
+  let textColor = "text-white";
 
-  const isSmall = ["Agulla", "Crossa", "Contrafort", "Tap"].includes(data.label);
-  const fontSize = isSmall ? "text-xs" : "text-sm";
-  const width = isSmall ? "w-16" : "w-20";  // smaller for small nodes
-  const height = isSmall ? "h-10" : "h-12";
+  if (data.member) {
+    if (data.member.position === "New") {
+      bgColor = "bg-green-500";
+      textColor = "text-white";
+    } else if (data.label === "Baix") {
+      bgColor = "bg-red-600";
+    } else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
+      bgColor = "bg-yellow-400";
+      textColor = "text-black";
+    } else {
+      bgColor = "bg-blue-500";
+    }
+  } else {
+    // If no member assigned, keep role-based color
+    if (data.label === "Baix") bgColor = "bg-red-600";
+    else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
+      bgColor = "bg-yellow-400";
+      textColor = "text-black";
+    } else bgColor = "bg-blue-500";
+  }
+
+  // Determine font size for small roles
+  const smallRoles = ["Agulla", "Crossa", "Contrafort", "Tap"];
+  const fontSize = smallRoles.includes(data.label) ? "text-sm" : "font-semibold";
 
   return (
     <div
@@ -66,15 +84,16 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
         border: isOver && canDrop ? "2px dashed green" : "none",
         opacity: isDragging ? 0.5 : 1,
       }}
-      className={`relative flex flex-col items-center ${bgColor} text-white ${width} ${height} px-3 py-2 rounded shadow cursor-pointer select-none`}
+      className={`relative flex flex-col items-center ${bgColor} ${textColor} px-2 py-1 rounded shadow cursor-pointer select-none min-w-[70px] min-h-[40px]`}
       onClick={() => data.member && data.onRemove?.()}
     >
-      <span className={`font-semibold ${fontSize} text-center`}>{data.label}</span>
+      <span className={fontSize}>
+        {data.member ? data.member.nickname : data.label}
+      </span>
 
       {data.member && (
-        <span className="text-xs text-gray-200 mt-1 text-center">
-          {data.member.nickname} <br />
-          {data.member.position || "No role"}
+        <span className="text-xs mt-1 text-center">
+          {data.member.position || ""}
         </span>
       )}
 

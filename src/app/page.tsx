@@ -20,12 +20,20 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Optional Accent Button */}
-      <Link href="/check-in">
-  <button className="bg-yellow-400 hover:bg-yellow-300 text-[#2f2484] font-semibold px-6 py-3 rounded-full shadow-md transition">
-    Check In Now
-  </button>
-</Link>
+      {/* Buttons */}
+      <div className="flex flex-col sm:flex-row gap-4 mt-2">
+        <Link href="/check-in">
+          <button className="bg-yellow-400 hover:bg-yellow-300 text-[#2f2484] font-semibold px-6 py-3 rounded-full shadow-md transition">
+            Check In Now
+          </button>
+        </Link>
+
+        <Link href="/pinya-planner">
+          <button className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-6 py-3 rounded-full shadow-md transition">
+            Go to Pinya Planner
+          </button>
+        </Link>
+      </div>
     </main>
   );
 }

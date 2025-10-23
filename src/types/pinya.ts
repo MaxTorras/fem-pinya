@@ -21,6 +21,14 @@ export type PinyaPosition = {
 export type PinyaLayout = {
   id: string;
   name: string;
+  folder?: string;      // optional
   castellType: string;
-  positions: PinyaPosition[];
+  positions: {
+    id: string;
+    label: string;
+    x: number;
+    y: number;
+    member?: Member;
+    rotation?: number;
+  }[];
 };

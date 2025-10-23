@@ -3,7 +3,7 @@
 import { Handle, Position } from "reactflow";
 import { Member } from "@/types/pinya";
 import { useDrop, useDrag } from "react-dnd";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 type PinyaNodeProps = {
   data: {
@@ -20,6 +20,8 @@ type PinyaNodeProps = {
 export default function PinyaNode({ data }: PinyaNodeProps) {
   const rotation = data.rotation ?? 0;
   const ref = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [fontSize, setFontSize] = useState(14);
 
   // Drag for trash
   const [{ isDragging }, drag] = useDrag({
@@ -46,12 +48,12 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
     }
   }, [drag, drop]);
 
-  // Determine background color
+  // Determine background and text color
   let bgColor = "bg-blue-500";
   let textColor = "text-white";
 
   if (data.member) {
-    if (data.member.position === "New") {
+    if (data.member.position?.toLowerCase() === "new") {
       bgColor = "bg-green-500";
       textColor = "text-white";
     } else if (data.label === "Baix") {
@@ -63,7 +65,6 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
       bgColor = "bg-blue-500";
     }
   } else {
-    // If no member assigned, keep role-based color
     if (data.label === "Baix") bgColor = "bg-red-600";
     else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
       bgColor = "bg-yellow-400";
@@ -71,9 +72,25 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
     } else bgColor = "bg-blue-500";
   }
 
-  // Determine font size for small roles
+  // Smaller font for compact roles
   const smallRoles = ["Agulla", "Crossa", "Contrafort", "Tap"];
-  const fontSize = smallRoles.includes(data.label) ? "text-sm" : "font-semibold";
+  const baseFont = smallRoles.includes(data.label) ? 12 : 14;
+
+  // Auto-resize nickname if needed
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+
+    const maxWidth = 65;
+    let current = baseFont;
+
+    el.style.fontSize = `${current}px`;
+    while (el.scrollWidth > maxWidth && current > 8) {
+      current -= 1;
+      el.style.fontSize = `${current}px`;
+    }
+    setFontSize(current);
+  }, [data.member?.nickname, data.label]);
 
   return (
     <div
@@ -84,18 +101,18 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
         border: isOver && canDrop ? "2px dashed green" : "none",
         opacity: isDragging ? 0.5 : 1,
       }}
-      className={`relative flex flex-col items-center ${bgColor} ${textColor} px-2 py-1 rounded shadow cursor-pointer select-none min-w-[70px] min-h-[40px]`}
+      className={`relative flex flex-col items-center justify-center ${bgColor} ${textColor} px-2 py-1 rounded shadow cursor-pointer select-none min-w-[70px] min-h-[40px]`}
       onClick={() => data.member && data.onRemove?.()}
     >
-      <span className={fontSize}>
+      <span
+        ref={textRef}
+        style={{ fontSize: `${fontSize}px` }}
+        className="font-semibold leading-tight text-center whitespace-nowrap"
+      >
         {data.member ? data.member.nickname : data.label}
       </span>
 
-      {data.member && (
-        <span className="text-xs mt-1 text-center">
-          {data.member.position || ""}
-        </span>
-      )}
+      {/* Removed position below nickname */}
 
       <button
         onClick={(e) => {

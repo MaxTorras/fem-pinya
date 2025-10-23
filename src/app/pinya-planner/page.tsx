@@ -32,7 +32,7 @@ export default function PinyaPlannerPage() {
   const [folderName, setFolderName] = useState(""); 
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
 
-  // Fetch layouts from API
+  // Fetch layouts
   const fetchLayouts = async () => {
     try {
       const res = await fetch("/api/layouts");
@@ -42,7 +42,6 @@ export default function PinyaPlannerPage() {
       console.error("Failed to fetch layouts:", err);
     }
   };
-
   useEffect(() => { fetchLayouts(); }, []);
 
   // Load members
@@ -65,7 +64,7 @@ export default function PinyaPlannerPage() {
       });
   }, [selectedDate, members]);
 
-  // Assign / remove members
+  // Assign / remove
   const assignMemberToNode = (nodeId: string, member: Member) => {
     setNodes(prev => prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member } } : n));
     setAttendance(prev => prev.filter(m => m.nickname !== member.nickname));
@@ -87,7 +86,36 @@ export default function PinyaPlannerPage() {
     );
   };
 
-  // Save layout via API
+  // 🧠 AUTO ASSIGN FUNCTION
+  const handleAutoAssign = () => {
+    const available = [...attendance]; // only present members
+    const updated = nodes.map((node) => {
+      if (node.data.member) return node;
+
+      const matchIndex = available.findIndex(
+        (m) => m.position?.toLowerCase() === node.data.label.toLowerCase()
+      );
+
+      if (matchIndex !== -1) {
+        const matched = available[matchIndex];
+        available.splice(matchIndex, 1);
+        return {
+          ...node,
+          data: { ...node.data, member: matched },
+        };
+      }
+      return node;
+    });
+
+    setNodes(updated);
+    // remove assigned members from attendance
+    const remaining = attendance.filter(
+      (m) => !updated.some((n) => n.data.member?.nickname === m.nickname)
+    );
+    setAttendance(remaining);
+  };
+
+  // Save layout
   const saveLayout = async () => {
     if (!layoutName.trim()) return alert("Please name your layout!");
     const layout: PinyaLayout = {
@@ -126,7 +154,7 @@ export default function PinyaPlannerPage() {
     }
   };
 
-  // Load a layout
+  // Load / delete layout
   const loadLayout = (layout: PinyaLayout) => {
     if (!layout.positions) return;
     const loadedNodes: Node[] = layout.positions.map(p => ({
@@ -137,8 +165,6 @@ export default function PinyaPlannerPage() {
     }));
     setNodes(loadedNodes);
   };
-
-  // Delete a layout
   const deleteLayout = async (id: string) => {
     if (!confirm("Delete this layout?")) return;
     try {
@@ -156,7 +182,7 @@ export default function PinyaPlannerPage() {
     }
   };
 
-  // Add new role
+  // Add role
   const addRole = (role: string) => {
     const id = `${role.toLowerCase()}_${Date.now()}`;
     setNodes(prev => [
@@ -177,7 +203,7 @@ export default function PinyaPlannerPage() {
     },
   }));
 
-  // Organize members by position
+  // Organize attendance by position
   const positionsMap: Record<string, Member[]> = {};
   attendance.forEach(m => {
     const key = m.position || "No role";
@@ -185,7 +211,7 @@ export default function PinyaPlannerPage() {
     positionsMap[key].push(m);
   });
 
-  // Folders for dropdown
+  // Folders
   const folders = Array.from(new Set(savedLayouts.map(l => l.folder).filter(Boolean))) as string[];
   const filteredLayouts = selectedFolder
     ? savedLayouts.filter(l => l.folder === selectedFolder)
@@ -207,6 +233,14 @@ export default function PinyaPlannerPage() {
               <input type="text" placeholder="Layout name" value={layoutName} onChange={e => setLayoutName(e.target.value)} className="border rounded p-1 w-full text-xs mb-1" />
               <input type="text" placeholder="Folder name (optional)" value={folderName} onChange={e => setFolderName(e.target.value)} className="border rounded p-1 w-full text-xs mb-1" />
               <button onClick={saveLayout} className="bg-blue-600 text-white px-2 py-1 rounded w-full text-xs mb-2">💾 Save Layout</button>
+
+              {/* 🧠 Auto Assign Button */}
+              <button
+                onClick={handleAutoAssign}
+                className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700"
+              >
+                ⚡ Auto Assign
+              </button>
 
               {/* Folder filter */}
               <select value={selectedFolder} onChange={e => setSelectedFolder(e.target.value || undefined)} className="border rounded p-1 w-full text-xs mb-2">

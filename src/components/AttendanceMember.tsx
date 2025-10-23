@@ -1,8 +1,8 @@
 "use client";
 
-import { Member } from "@/types/pinya";
 import { useDrag } from "react-dnd";
 import { useRef, useEffect } from "react";
+import { Member } from "@/types/pinya";
 
 type AttendanceMemberProps = {
   member: Member;
@@ -11,13 +11,13 @@ type AttendanceMemberProps = {
 export default function AttendanceMember({ member }: AttendanceMemberProps) {
   const ref = useRef<HTMLDivElement>(null);
 
-  const [{ isDragging }, drag] = useDrag({
+  const [{ isDragging }, drag] = useDrag(() => ({
     type: "MEMBER",
     item: member,
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
-  });
+  }));
 
   useEffect(() => {
     if (ref.current) drag(ref.current);
@@ -26,12 +26,16 @@ export default function AttendanceMember({ member }: AttendanceMemberProps) {
   return (
     <div
       ref={ref}
-      style={{ opacity: isDragging ? 0.5 : 1 }}
-      className="bg-gray-200 px-3 py-2 rounded shadow text-sm cursor-grab select-none w-full text-center mb-1"
+      className={`p-2 mb-1 rounded text-xs cursor-move ${
+        isDragging ? "opacity-50" : "opacity-100"
+      } bg-white border shadow-sm hover:bg-gray-100`}
     >
-      <span className="font-semibold">{member.nickname}</span>
-      <br />
-      <span className="text-xs text-gray-500">{member.position || "No role"}</span>
+      <strong>{member.nickname}</strong>
+      {member.name && (
+        <span className="text-gray-500 text-[10px] ml-1">
+          ({member.name} {member.surname})
+        </span>
+      )}
     </div>
   );
 }

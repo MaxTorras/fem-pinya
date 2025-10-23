@@ -1,37 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ReactFlow, { Node, applyNodeChanges, Background, Controls } from "reactflow";
+import ReactFlow, { Node, applyNodeChanges, Background, Controls, OnNodesChange } from "reactflow";
 import "reactflow/dist/style.css";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import PinyaNode from "@/components/PinyaNode";
 import AttendanceMember from "@/components/AttendanceMember";
 import { Member, PinyaLayout } from "@/types/pinya";
-import { OnNodesChange } from "reactflow";
+import TrashBin from "@/components/TrashBin"; // we'll define this component below
+import { TouchBackend } from "react-dnd-touch-backend";
+import { isMobile } from "react-device-detect";
 
 type AttendanceRecord = {
   nickname: string;
-  // you can add more fields if your API returns them, e.g. date, timestamp
 };
 
 const nodeTypes = { pinya: PinyaNode };
 
-// ✅ Quick role list
 const quickRoles = [
-  "Vent",
-  "Mans",
-  "Baix",
-  "Contrafort",
-  "Agulla",
-  "Crossa",
-  "Lateral",
-  "Diagonal",
-  "Tap",
-  "Tronc",
-  "Dosos",
-  "Acotxadora",
-  "Enxaneta",
+  "Vent","Mans","Baix","Contrafort","Agulla","Crossa","Lateral",
+  "Diagonal","Tap","Tronc","Dosos","Acotxadora","Enxaneta",
 ];
 
 export default function PinyaPlannerPage() {
@@ -50,7 +39,7 @@ export default function PinyaPlannerPage() {
       .then((data) => setMembers(data.members));
   }, []);
 
-  // Load attendance for date
+  // Load attendance for selected date
   useEffect(() => {
     if (!selectedDate) return;
     fetch(`/api/attendance?date=${selectedDate}`)
@@ -63,8 +52,7 @@ export default function PinyaPlannerPage() {
       });
   }, [selectedDate, members]);
 
-
-  // Assign & remove members
+  // Assign / remove members
   const assignMemberToNode = (nodeId: string, member: Member) => {
     setNodes((prev) =>
       prev.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, member } } : n))
@@ -127,39 +115,36 @@ export default function PinyaPlannerPage() {
     setNodes(loadedNodes);
   };
 
-  // ✅ Add new role (no numbering restriction)
+  // Add new role
   const addRole = (role: string) => {
-  const id = `${role.toLowerCase()}_${Date.now()}`;
-  setNodes((prev) => [
-    {
-      id,
-      type: "pinya",
-      position: { x: 400, y: Math.max(50, 100 - prev.length * 50) },
-      data: { label: role, rotation: 0 },
-    },
-    ...prev, // put new one first so it renders on top
-  ]);
-};
-
-  const addNewRole = () => {
-    if (!newRoleName.trim()) return;
-    addRole(newRoleName);
-    setNewRoleName("");
+    const id = `${role.toLowerCase()}_${Date.now()}`;
+    setNodes((prev) => [
+      {
+        id,
+        type: "pinya",
+        position: { x: 400, y: Math.max(50, 100 - prev.length * 50) },
+        data: { label: role, rotation: 0 },
+      },
+      ...prev, // new role on top
+    ]);
   };
+
+  
+
   const onNodesChange: OnNodesChange = (changes) =>
-  setNodes((nds) => applyNodeChanges(changes, nds));
+    setNodes((nds) => applyNodeChanges(changes, nds));
 
   // Nodes with handlers
-const nodesWithHandlers = nodes.map((n) => ({
-  ...n,
-  key: `${n.id}_${n.data.rotation || 0}`, // ✅ force re-render when rotation changes
-  data: {
-    ...n.data,
-    onAssign: (m: Member) => assignMemberToNode(n.id, m),
-    onRemove: () => removeMemberFromNode(n.id),
-    onRotate: () => rotateNode(n.id),
-  },
-}));
+  const nodesWithHandlers = nodes.map((n) => ({
+    ...n,
+    key: `${n.id}_${n.data.rotation || 0}`,
+    data: {
+      ...n.data,
+      onAssign: (m: Member) => assignMemberToNode(n.id, m),
+      onRemove: () => removeMemberFromNode(n.id),
+      onRotate: () => rotateNode(n.id),
+    },
+  }));
 
   // Organize members by position
   const positionsMap: Record<string, Member[]> = {};
@@ -170,12 +155,11 @@ const nodesWithHandlers = nodes.map((n) => ({
   });
 
   return (
-    <DndProvider backend={HTML5Backend}>
+    <DndProvider backend={isMobile ? TouchBackend : HTML5Backend}>
       <div className="flex h-screen w-full relative">
         {/* LEFT PANEL */}
         <div className="w-56 border-r flex flex-col">
           <div className="p-2 border-b bg-white sticky top-0 z-10">
-            {/* Date picker */}
             <div className="mb-2">
               <label className="text-xs font-semibold mb-1 block">Select date:</label>
               <input
@@ -186,23 +170,8 @@ const nodesWithHandlers = nodes.map((n) => ({
               />
             </div>
 
-            {/* Add new role */}
-            <div className="mb-2">
-              <input
-                value={newRoleName}
-                onChange={(e) => setNewRoleName(e.target.value)}
-                placeholder="New role"
-                className="border rounded p-1 w-full text-xs mb-1"
-              />
-              <button
-                onClick={addNewRole}
-                className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs"
-              >
-                ➕ Add Role
-              </button>
-            </div>
+           
 
-            {/* Save / Load */}
             <div>
               <input
                 value={layoutName}
@@ -245,18 +214,39 @@ const nodesWithHandlers = nodes.map((n) => ({
         </div>
 
         {/* CANVAS */}
-        <div className="flex-1 border p-2">
-          <ReactFlow
+        <div className="flex-1 border p-2 relative">
+         <ReactFlow
   nodes={nodesWithHandlers}
   onNodesChange={onNodesChange}
   nodeTypes={nodeTypes}
   fitView
->
-            <Background />
-            <Controls />
-          </ReactFlow>
-        </div>
+  onNodeDragStop={(event, node) => {
+    const trash = document.getElementById("trash-bin");
+    if (!trash) return;
 
+    const rect = trash.getBoundingClientRect();
+    const clientEvent = event as unknown as MouseEvent | TouchEvent;
+const x =
+  (clientEvent as MouseEvent).clientX ??
+  (clientEvent as TouchEvent).touches?.[0]?.clientX;
+const y =
+  (clientEvent as MouseEvent).clientY ??
+  (clientEvent as TouchEvent).touches?.[0]?.clientY;
+
+
+    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+      setNodes((prev) => prev.filter((n) => n.id !== node.id));
+    }
+  }}
+>
+  <Background />
+  <Controls />
+</ReactFlow>
+
+{/* Trash Bin inside DndProvider */}
+<TrashBin />
+
+</div> {/* ✅ <-- This was missing */}
         {/* RIGHT QUICK ROLE PANEL */}
         <div className="fixed top-4 right-4 bg-white rounded-xl shadow-md p-3 flex flex-col gap-2 max-h-[90vh] overflow-auto z-50 w-40">
           <h3 className="font-semibold text-center mb-1 text-sm">Add Role</h3>

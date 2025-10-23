@@ -30,22 +30,32 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
 
   // Drop target for members
   const [{ isOver, canDrop }, drop] = useDrop({
-  accept: "MEMBER",
-  drop: (item: Member) => data.onAssign?.(item),
-  canDrop: () => !data.member,
-  collect: (monitor) => ({
-    isOver: !!monitor.isOver(),
-    canDrop: !!monitor.canDrop(),
-  }),
-});
+    accept: "MEMBER",
+    drop: (item: Member) => data.onAssign?.(item),
+    canDrop: () => !data.member,
+    collect: (monitor) => ({
+      isOver: !!monitor.isOver(),
+      canDrop: !!monitor.canDrop(),
+    }),
+  });
 
-  // Attach drag and drop
   useEffect(() => {
     if (ref.current) {
       drag(ref.current);
       drop(ref.current);
     }
   }, [drag, drop]);
+
+  // --- COLOR, SIZE & DIMENSIONS ---
+  let bgColor = "bg-blue-500"; // default
+  if (data.label === "Baix") bgColor = "bg-red-500";
+  else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label))
+    bgColor = "bg-yellow-500";
+
+  const isSmall = ["Agulla", "Crossa", "Contrafort", "Tap"].includes(data.label);
+  const fontSize = isSmall ? "text-xs" : "text-sm";
+  const width = isSmall ? "w-16" : "w-20";  // smaller for small nodes
+  const height = isSmall ? "h-10" : "h-12";
 
   return (
     <div
@@ -56,10 +66,11 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
         border: isOver && canDrop ? "2px dashed green" : "none",
         opacity: isDragging ? 0.5 : 1,
       }}
-      className="relative flex flex-col items-center bg-blue-500 text-white px-3 py-2 rounded shadow cursor-pointer select-none min-w-[80px] min-h-[50px]"
+      className={`relative flex flex-col items-center ${bgColor} text-white ${width} ${height} px-3 py-2 rounded shadow cursor-pointer select-none`}
       onClick={() => data.member && data.onRemove?.()}
     >
-      <span className="font-semibold">{data.label}</span>
+      <span className={`font-semibold ${fontSize} text-center`}>{data.label}</span>
+
       {data.member && (
         <span className="text-xs text-gray-200 mt-1 text-center">
           {data.member.nickname} <br />

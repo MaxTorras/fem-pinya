@@ -12,11 +12,22 @@ import {
 } from "recharts";
 import { Quicksand } from "next/font/google";
 
+type Member = { nickname: string; name?: string; surname?: string; position?: string };
+
+type LayoutPosition = {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  member?: Member;
+  rotation?: number;
+};
+
 const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
 type AttendanceRecord = { date: string; nickname: string; timestamp: string };
-type Member = { nickname: string; name?: string; surname?: string; position?: string };
-type PinyaLayout = { id: string; name: string; folder?: string; positions?: any[] };
+
+type PinyaLayout = { id: string; name: string; folder?: string; positions?: LayoutPosition[] };
 
 type Tab = "attendance" | "members" | "positions" | "stats" | "tecnica";
 

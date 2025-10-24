@@ -1,14 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ReactFlow, { Node, applyNodeChanges, Background, Controls, OnNodesChange } from "reactflow";
+import ReactFlow, {
+  Node,
+  applyNodeChanges,
+  Background,
+  Controls,
+  OnNodesChange,
+  NodeChange,
+} from "reactflow";
 import "reactflow/dist/style.css";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { TouchBackend } from "react-dnd-touch-backend";
 import { isMobile } from "react-device-detect";
-import * as htmlToImage from 'html-to-image';
-import download from 'downloadjs';
+import * as htmlToImage from "html-to-image";
+import download from "downloadjs";
 
 import PinyaNode from "@/components/PinyaNode";
 import AttendanceMember from "@/components/AttendanceMember";
@@ -31,92 +38,92 @@ export default function PinyaPlannerPage() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [savedLayouts, setSavedLayouts] = useState<PinyaLayout[]>([]);
   const [layoutName, setLayoutName] = useState("");
-  const [folderName, setFolderName] = useState(""); 
+  const [folderName, setFolderName] = useState("");
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
 
   // Fetch layouts
   const fetchLayouts = async () => {
     try {
       const res = await fetch("/api/layouts");
-      const layouts = await res.json();
+      const layouts = (await res.json()) as PinyaLayout[];
       setSavedLayouts(layouts);
     } catch (err) {
       console.error("Failed to fetch layouts:", err);
     }
   };
+
   useEffect(() => { fetchLayouts(); }, []);
 
   // Load members
   useEffect(() => {
     fetch("/api/members")
       .then(res => res.json())
-      .then(data => setMembers(data.members));
+      .then((data: { members: Member[] }) => setMembers(data.members || []));
   }, []);
 
   // Load attendance
   useEffect(() => {
-    if (!selectedDate) return;
+    if (!selectedDate || members.length === 0) return;
     fetch(`/api/attendance?date=${selectedDate}`)
       .then(res => res.json())
-      .then(data => {
+      .then((data: { records: AttendanceRecord[] }) => {
         const presentMembers = data.records
-          .map((r: AttendanceRecord) => members.find(m => m.nickname === r.nickname))
-          .filter(Boolean) as Member[];
+          .map(r => members.find(m => m.nickname === r.nickname))
+          .filter((m): m is Member => m !== undefined);
         setAttendance(presentMembers);
       });
   }, [selectedDate, members]);
 
-  // Assign / remove
+  // Assign / remove member from node
   const assignMemberToNode = (nodeId: string, member: Member) => {
-    setNodes(prev => prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member } } : n));
+    setNodes(prev =>
+      prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member } } : n)
+    );
     setAttendance(prev => prev.filter(m => m.nickname !== member.nickname));
   };
+
   const removeMemberFromNode = (nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node?.data?.member) return;
     setAttendance(prev => [...prev, node.data.member]);
-    setNodes(prev => prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member: undefined } } : n));
+    setNodes(prev =>
+      prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member: undefined } } : n)
+    );
   };
 
   // Rotate node
   const rotateNode = (nodeId: string) => {
     setNodes(prev =>
       prev.map(n => n.id === nodeId
-        ? { ...n, data: { ...n.data, rotation: ((n.data.rotation || 0) + 45) % 360 } }
+        ? { ...n, data: { ...n.data, rotation: ((n.data.rotation ?? 0) + 45) % 360 } }
         : n
       )
     );
   };
 
-  // 🧠 AUTO ASSIGN FUNCTION
+  // Auto-assign members to nodes based on position
   const handleAutoAssign = () => {
-    const available = [...attendance]; // only present members
-    const updated = nodes.map((node) => {
-      if (node.data.member) return node;
+    const available = [...attendance];
+    const updated = nodes.map(n => {
+      if (n.data?.member) return n;
 
       const matchIndex = available.findIndex(
-        (m) => m.position?.toLowerCase() === node.data.label.toLowerCase()
+        m => m.position?.toLowerCase() === n.data.label?.toLowerCase()
       );
 
       if (matchIndex !== -1) {
         const matched = available[matchIndex];
         available.splice(matchIndex, 1);
-        return {
-          ...node,
-          data: { ...node.data, member: matched },
-        };
+        return { ...n, data: { ...n.data, member: matched } };
       }
-      return node;
+      return n;
     });
 
     setNodes(updated);
-    const remaining = attendance.filter(
-      (m) => !updated.some((n) => n.data.member?.nickname === m.nickname)
-    );
-    setAttendance(remaining);
+    setAttendance(attendance.filter(m => !updated.some(n => n.data?.member?.nickname === m.nickname)));
   };
 
-  // SAVE / LOAD / DELETE / ADD role functions
+  // Save layout
   const saveLayout = async () => {
     if (!layoutName.trim()) return alert("Please name your layout!");
     const layout: PinyaLayout = {
@@ -126,11 +133,11 @@ export default function PinyaPlannerPage() {
       castellType: "4d7",
       positions: nodes.map(n => ({
         id: n.id,
-        label: n.data.label,
+        label: n.data.label ?? "",
         x: n.position.x,
         y: n.position.y,
         member: n.data.member,
-        rotation: n.data.rotation || 0,
+        rotation: n.data.rotation ?? 0,
       })),
     };
 
@@ -154,16 +161,20 @@ export default function PinyaPlannerPage() {
       alert("❌ Error saving layout");
     }
   };
+
+  // Load layout
   const loadLayout = (layout: PinyaLayout) => {
     if (!layout.positions) return;
     const loadedNodes: Node[] = layout.positions.map(p => ({
       id: p.id,
       type: "pinya",
       position: { x: p.x, y: p.y },
-      data: { label: p.label, member: p.member, rotation: p.rotation || 0 },
+      data: { label: p.label, member: p.member, rotation: p.rotation ?? 0 },
     }));
     setNodes(loadedNodes);
   };
+
+  // Delete layout
   const deleteLayout = async (id: string) => {
     if (!confirm("Delete this layout?")) return;
     try {
@@ -180,6 +191,8 @@ export default function PinyaPlannerPage() {
       alert("❌ Error deleting layout");
     }
   };
+
+  // Add role
   const addRole = (role: string) => {
     const id = `${role.toLowerCase()}_${Date.now()}`;
     setNodes(prev => [
@@ -189,35 +202,37 @@ export default function PinyaPlannerPage() {
   };
 
   // Node handlers
-  const onNodesChange: OnNodesChange = (changes) => setNodes(nds => applyNodeChanges(changes, nds));
+  const onNodesChange: OnNodesChange = (changes: NodeChange[]) =>
+    setNodes(nds => applyNodeChanges(changes, nds));
+
   const nodesWithHandlers = nodes.map(n => ({
     ...n,
-    key: `${n.id}_${n.data.rotation || 0}`,
+    key: `${n.id}_${n.data?.rotation ?? 0}`,
     data: {
-      ...n.data,
+      ...(n.data ?? {}),
       onAssign: (m: Member) => assignMemberToNode(n.id, m),
       onRemove: () => removeMemberFromNode(n.id),
       onRotate: () => rotateNode(n.id),
     },
   }));
 
-  // Organize attendance
+  // Organize attendance by position
   const positionsMap: Record<string, Member[]> = {};
   attendance.forEach(m => {
-    const key = m.position || "No role";
+    const key = m.position ?? "No role";
     if (!positionsMap[key]) positionsMap[key] = [];
     positionsMap[key].push(m);
   });
 
-  // Folders
+  // Folder filtering
   const folders = Array.from(new Set(savedLayouts.map(l => l.folder).filter(Boolean))) as string[];
   const filteredLayouts = selectedFolder
     ? savedLayouts.filter(l => l.folder === selectedFolder)
     : savedLayouts;
 
-  // ✅ Export canvas as image (only ReactFlow)
+  // Export ReactFlow canvas as image
   const exportLayoutAsImage = async () => {
-    const canvas = document.querySelector('.reactflow-wrapper') as HTMLElement;
+    const canvas = document.querySelector<HTMLDivElement>(".reactflow-wrapper");
     if (!canvas) return alert("Canvas not found!");
     try {
       const dataUrl = await htmlToImage.toPng(canvas, { cacheBust: true });
@@ -239,29 +254,17 @@ export default function PinyaPlannerPage() {
               <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="border rounded p-1 w-full text-xs" />
             </div>
 
-            {/* Save Layout */}
             <div className="mb-2">
               <input type="text" placeholder="Layout name" value={layoutName} onChange={e => setLayoutName(e.target.value)} className="border rounded p-1 w-full text-xs mb-1" />
               <input type="text" placeholder="Folder name (optional)" value={folderName} onChange={e => setFolderName(e.target.value)} className="border rounded p-1 w-full text-xs mb-1" />
               <button onClick={saveLayout} className="bg-blue-600 text-white px-2 py-1 rounded w-full text-xs mb-2">💾 Save Layout</button>
-
-              {/* 🧠 Auto Assign */}
-              <button onClick={handleAutoAssign} className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700">
-                ⚡ Auto Assign
-              </button>
-
-              {/* 📷 Export */}
-              <button onClick={exportLayoutAsImage} className="bg-purple-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-purple-700">
-                📷 Export Layout
-              </button>
-
-              {/* Folder filter */}
+              <button onClick={handleAutoAssign} className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700">⚡ Auto Assign</button>
+              <button onClick={exportLayoutAsImage} className="bg-purple-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-purple-700">📷 Export Layout</button>
               <select value={selectedFolder} onChange={e => setSelectedFolder(e.target.value || undefined)} className="border rounded p-1 w-full text-xs mb-2">
                 <option value="">All folders</option>
                 {folders.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
 
-              {/* Layout list */}
               <div className="max-h-36 overflow-y-auto">
                 {filteredLayouts.map(layout => (
                   <div key={layout.id} className="flex justify-between items-center mb-1 border px-2 py-1 rounded hover:bg-gray-100">
@@ -298,9 +301,8 @@ export default function PinyaPlannerPage() {
                 const trash = document.getElementById("trash-bin");
                 if (!trash) return;
                 const rect = trash.getBoundingClientRect();
-                const clientEvent = event as unknown as MouseEvent | TouchEvent;
-                const x = (clientEvent as MouseEvent).clientX ?? (clientEvent as TouchEvent).touches?.[0]?.clientX;
-                const y = (clientEvent as MouseEvent).clientY ?? (clientEvent as TouchEvent).touches?.[0]?.clientY;
+                const x = 'clientX' in event ? event.clientX : (event as any).touches?.[0]?.clientX;
+                const y = 'clientY' in event ? event.clientY : (event as any).touches?.[0]?.clientY;
                 if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
                   setNodes(prev => prev.filter(n => n.id !== node.id));
                 }

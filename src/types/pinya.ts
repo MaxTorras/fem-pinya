@@ -21,7 +21,7 @@ export type PinyaPosition = {
 export type PinyaLayout = {
   id: string;
   name: string;
-  folder?: string;      // optional
+  folder?: string;
   castellType: string;
   positions: {
     id: string;
@@ -31,4 +31,5 @@ export type PinyaLayout = {
     member?: Member;
     rotation?: number;
   }[];
+  publishedDates?: string[]; // <-- add this line
 };

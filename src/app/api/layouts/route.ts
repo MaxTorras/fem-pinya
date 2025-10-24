@@ -2,18 +2,34 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-export async function GET() {
-  const { data, error } = await supabase
-    .from("layouts")
-    .select("*")
-    .order("created_at", { ascending: false });
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get("date"); // optional ?date=YYYY-MM-DD
 
-  if (error) {
-    console.error("GET layouts error:", error);
-    return NextResponse.json([], { status: 200 });
+    let query = supabase
+      .from("layouts")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (date) {
+      // ⚠️ You don’t have a 'date' column — but you have 'published_dates'
+      // so we’ll check if the formatted date is inside that array:
+      query = query.contains("published_dates", [date]);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error("GET /api/layouts error:", error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(data ?? []);
+  } catch (err: any) {
+    console.error("Unexpected /api/layouts error:", err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
-
-  return NextResponse.json(data ?? []);
 }
 
 export async function POST(request: Request) {
@@ -31,23 +47,23 @@ export async function POST(request: Request) {
 
     if (error) throw error;
     return NextResponse.json({ success: true, layout: data?.[0] ?? null });
-  } catch (err) {
-    console.error("POST layout error:", err);
-    return NextResponse.json({ success: false, error: "Failed to save layout" }, { status: 500 });
+  } catch (err: any) {
+    console.error("POST /api/layouts error:", err.message);
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
 
 export async function DELETE(request: Request) {
   try {
     const { id } = await request.json();
-    if (!id) return NextResponse.json({ success: false }, { status: 400 });
+    if (!id) return NextResponse.json({ success: false, error: "Missing ID" }, { status: 400 });
 
     const { error } = await supabase.from("layouts").delete().eq("id", id);
     if (error) throw error;
 
     return NextResponse.json({ success: true });
-  } catch (err) {
-    console.error("DELETE layout error:", err);
-    return NextResponse.json({ success: false, error: "Failed to delete layout" }, { status: 500 });
+  } catch (err: any) {
+    console.error("DELETE /api/layouts error:", err.message);
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }

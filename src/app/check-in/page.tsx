@@ -161,22 +161,33 @@ export default function CheckIn() {
         </ul>
       )}
 
-      <div className="flex gap-4 mt-4">
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="bg-[#2f2484] text-white px-6 py-2 rounded font-semibold hover:bg-yellow-400 hover:text-[#2f2484] transition"
-        >
-          {loading ? "Submitting..." : "Check In"}
-        </button>
+     <div className="flex flex-col gap-4 mt-4 items-center w-full">
+  {/* Top row: Check In & Edit Profile */}
+  <div className="flex gap-4">
+    <button
+      onClick={handleSubmit}
+      disabled={loading}
+      className="bg-[#2f2484] text-white px-6 py-2 rounded font-semibold hover:bg-yellow-400 hover:text-[#2f2484] transition w-32"
+    >
+      {loading ? "Submitting..." : "Check In"}
+    </button>
 
-        <button
-          onClick={() => router.push("/profile")}
-          className="bg-gray-200 text-gray-800 px-6 py-2 rounded font-semibold hover:bg-yellow-100 transition"
-        >
-          Edit Profile
-        </button>
-      </div>
+    <button
+      onClick={() => router.push("/profile")}
+      className="bg-gray-200 text-gray-800 px-6 py-2 rounded font-semibold hover:bg-yellow-100 transition w-32"
+    >
+      Edit Profile
+    </button>
+  </div>
+
+  {/* Below row: Pinyes Overview */}
+  <button
+    onClick={() => router.push("/pinyes-overview")}
+    className="bg-green-600 text-white px-6 py-2 rounded font-semibold hover:bg-green-500 transition w-64"
+  >
+    View Pinyes Overview
+  </button>
+</div>
 
       {status && (
         <p

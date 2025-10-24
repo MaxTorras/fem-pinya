@@ -16,7 +16,8 @@ const quicksand = Quicksand({ subsets: ["latin"], weight: ["400","600","700"] })
 
 type AttendanceRecord = { date: string; nickname: string; timestamp: string };
 type Member = { nickname: string; name?: string; surname?: string; position?: string };
-type Tab = "attendance" | "members" | "positions" | "stats";
+type PinyaLayout = { id: string; name: string; folder?: string; positions?: any[] };
+type Tab = "attendance" | "members" | "positions" | "stats" | "tecnica";
 
 // Tabs component
 function Tabs({ tabs, activeTab, setActiveTab }: { tabs: Tab[]; activeTab: Tab; setActiveTab: (tab: Tab) => void }) {
@@ -38,14 +39,16 @@ function Tabs({ tabs, activeTab, setActiveTab }: { tabs: Tab[]; activeTab: Tab; 
             ? "Members"
             : tab === "positions"
             ? "By Position"
-            : "Stats"}
+            : tab === "stats"
+            ? "Stats"
+            : "Tecnica"}
         </button>
       ))}
     </div>
   );
 }
 
-// Day selector for "By Position"
+// Day selector for "By Position" and Tecnica
 function DaySelector({
   dates,
   selectedDate,
@@ -80,18 +83,23 @@ export default function AdminPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [layouts, setLayouts] = useState<PinyaLayout[]>([]);
+  const [selectedLayouts, setSelectedLayouts] = useState<string[]>([]); // selected pinyes for Tecnica tab
+  const today = new Date();
+const isoDate = today.toISOString().split("T")[0]; // "YYYY-MM-DD"
+
   const attendanceDates = Array.from(new Set(attendance.map((r) => r.date))).sort(
     (a, b) => new Date(b).getTime() - new Date(a).getTime()
   );
   const [selectedDate, setSelectedDate] = useState(
-  attendanceDates[attendanceDates.length - 1] || ""
-);
+    attendanceDates[attendanceDates.length - 1] || ""
+  );
 
   useEffect(() => {
-  if (!selectedDate && attendanceDates.length > 0) {
-    setSelectedDate(attendanceDates[attendanceDates.length - 1]);
-  }
-}, [attendanceDates, selectedDate]);
+    if (!selectedDate && attendanceDates.length > 0) {
+      setSelectedDate(attendanceDates[attendanceDates.length - 1]);
+    }
+  }, [attendanceDates, selectedDate]);
 
   const handleLogin = async () => {
     setError("");
@@ -117,11 +125,20 @@ export default function AdminPage() {
       setLoading(true);
       try {
         const membersRes = await fetch("/api/members");
-        const attendanceRes = await fetch("/api/attendance");
-        const membersData = await membersRes.json();
-        const attendanceData = await attendanceRes.json();
-        setMembers(membersData.members || []);
-        setAttendance(attendanceData.records || []);
+const attendanceRes = await fetch("/api/attendance");
+const layoutsRes = await fetch("/api/layouts");
+
+const membersData = await membersRes.json();
+const attendanceData = await attendanceRes.json();
+const layoutsData = await layoutsRes.json();
+
+setMembers(membersData.members || []);
+setAttendance(attendanceData.records || []);
+
+// ✅ API returns a plain array, not { layouts: [] }
+setLayouts(Array.isArray(layoutsData) ? layoutsData : []);
+console.log("✅ Loaded layouts:", layoutsData);
+
       } catch (err) {
         console.error("Failed to fetch data", err);
       } finally {
@@ -143,22 +160,20 @@ export default function AdminPage() {
 
   // ---- Group by position ----
   const membersByPosition = useMemo(() => {
-  return attendance
-    .filter((r) => r.date === selectedDate)
-    .reduce<Record<string, { member?: Member; rawNickname: string }[]>>((acc, record) => {
-      const member = members.find(
-        (m) => m.nickname.toLowerCase().trim() === record.nickname.toLowerCase().trim()
-      );
+    return attendance
+      .filter((r) => r.date === selectedDate)
+      .reduce<Record<string, { member?: Member; rawNickname: string }[]>>((acc, record) => {
+        const member = members.find(
+          (m) => m.nickname.toLowerCase().trim() === record.nickname.toLowerCase().trim()
+        );
 
-      // Determine the position key
-      const pos = member?.position && member.position.trim() !== "" ? member.position : "Unknown";
+        const pos = member?.position && member.position.trim() !== "" ? member.position : "Unknown";
 
-      if (!acc[pos]) acc[pos] = [];
-
-      acc[pos].push({ member, rawNickname: record.nickname });
-      return acc;
-    }, {});
-}, [attendance, members, selectedDate]);
+        if (!acc[pos]) acc[pos] = [];
+        acc[pos].push({ member, rawNickname: record.nickname });
+        return acc;
+      }, {});
+  }, [attendance, members, selectedDate]);
 
   // ---- Stats tab logic (total + streaks) ----
   const attendanceByMember = useMemo(() => {
@@ -178,19 +193,15 @@ export default function AdminPage() {
 
       for (let i = 1; i < sortedDates.length; i++) {
         const diffDays = (sortedDates[i].getTime() - sortedDates[i - 1].getTime()) / (1000 * 3600 * 24);
-        // 7 days apart → next Tuesday
-        if (diffDays >= 6 && diffDays <= 8) {
-          streak++;
-        } else {
-          streak = 1;
-        }
+        if (diffDays >= 6 && diffDays <= 8) streak++;
+        else streak = 1;
         currentStreak = Math.max(currentStreak, streak);
       }
 
       return {
         nickname,
         count: dates.length,
-        currentStreak: streak, // last streak (ongoing)
+        currentStreak: streak,
       };
     });
 
@@ -232,7 +243,7 @@ export default function AdminPage() {
       </h1>
 
       <Tabs
-        tabs={["attendance", "members", "positions", "stats"]}
+        tabs={["attendance", "members", "positions", "stats", "tecnica"]}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
       />
@@ -273,53 +284,50 @@ export default function AdminPage() {
           ))}
         </ul>
       ) : activeTab === "positions" ? (
-  <div className="space-y-4">
-    <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Check-ins by Position</h2>
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Check-ins by Position</h2>
 
-    <DaySelector
-      dates={attendanceDates}
-      selectedDate={selectedDate}
-      setSelectedDate={setSelectedDate}
-    />
+          <DaySelector
+            dates={attendanceDates}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+          />
 
-    {Object.keys(membersByPosition).length === 0 ? (
-      <p>No attendance records for this day.</p>
-    ) : (
-      Object.entries(membersByPosition).map(([pos, list]) => {
-  const displayPos = pos === "Unknown"
-    ? <span className="text-red-600 font-semibold">⚠️ Missing / Unmatched Position</span>
-    : <span className="text-yellow-500 font-semibold">{pos}</span>;
+          {Object.keys(membersByPosition).length === 0 ? (
+            <p>No attendance records for this day.</p>
+          ) : (
+            Object.entries(membersByPosition).map(([pos, list]) => {
+              const displayPos = pos === "Unknown"
+                ? <span className="text-red-600 font-semibold">⚠️ Missing / Unmatched Position</span>
+                : <span className="text-yellow-500 font-semibold">{pos}</span>;
 
-  return (
-    <div key={pos} className="border-2 border-[#2f2484] rounded p-3">
-      <h3 className="mb-2">{displayPos}</h3>
-      <ul className="text-sm text-gray-700 list-disc list-inside">
-       {list.map(({ member, rawNickname }) => {
-  return (
-    <li key={rawNickname}>
-      {member ? (
-        <>
-          <span>{member.nickname}</span>
-          {(member.name || member.surname) && (
-            <span className="text-gray-500 text-sm ml-1">
-              ({member.name || ""} {member.surname || ""})
-            </span>
+              return (
+                <div key={pos} className="border-2 border-[#2f2484] rounded p-3">
+                  <h3 className="mb-2">{displayPos}</h3>
+                  <ul className="text-sm text-gray-700 list-disc list-inside">
+                    {list.map(({ member, rawNickname }) => (
+                      <li key={rawNickname}>
+                        {member ? (
+                          <>
+                            <span>{member.nickname}</span>
+                            {(member.name || member.surname) && (
+                              <span className="text-gray-500 text-sm ml-1">
+                                ({member.name || ""} {member.surname || ""})
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span>{rawNickname}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })
           )}
-        </>
-      ) : (
-        <span>{rawNickname}</span>
-      )}
-    </li>
-  );
-})}
-      </ul>
-    </div>
-  );
-})
-    )}
-  </div>
-      ) : (
-        // ---- Stats Tab ----
+        </div>
+      ) : activeTab === "stats" ? (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Attendance Stats</h2>
           <ul className="border-2 border-[#2f2484] rounded divide-y">
@@ -352,7 +360,53 @@ export default function AdminPage() {
             })}
           </ul>
         </div>
-      )}
+      ) : activeTab === "tecnica" ? (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Tecnica – Select Layouts for Today</h2>
+
+          {layouts.length === 0 ? (
+            <p>No layouts available.</p>
+          ) : (
+            <ul className="border-2 border-[#2f2484] rounded divide-y">
+              {layouts.map((layout) => (
+                <li key={layout.id} className="p-3 flex justify-between items-center">
+                  <span>{layout.name} {layout.folder ? `(${layout.folder})` : ""}</span>
+                  <input
+                    type="checkbox"
+                    checked={selectedLayouts.includes(layout.id)}
+                    onChange={(e) => {
+                      setSelectedLayouts((prev) =>
+                        e.target.checked
+                          ? [...prev, layout.id]
+                          : prev.filter((id) => id !== layout.id)
+                      );
+                    }}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <button
+  onClick={async () => {
+    try {
+      await fetch("/api/layouts/publish", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ date: isoDate, layoutIds: selectedLayouts }),
+});
+      alert("✅ Layouts published for today!");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to publish layouts");
+    }
+  }}
+  className="bg-green-600 text-white px-4 py-2 rounded mt-2"
+>
+  Publish Selected Layouts
+</button>
+        </div>
+      ) : null}
     </main>
   );
 }

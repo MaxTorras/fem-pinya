@@ -20,8 +20,12 @@ const formattedDate = date; // ✅ keep as YYYY-MM-DD
     if (error) throw error;
 
     return NextResponse.json({ layouts: data ?? [] });
-  } catch (err: any) {
-    console.error("GET /api/layouts/published error:", err.message);
-    return NextResponse.json({ layouts: [], error: err.message }, { status: 500 });
+   } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error("GET /api/layouts/published error:", err.message);
+      return NextResponse.json({ layouts: [], error: err.message }, { status: 500 });
+    }
+    console.error("GET /api/layouts/published unknown error:", err);
+    return NextResponse.json({ layouts: [], error: "Unknown error" }, { status: 500 });
   }
 }

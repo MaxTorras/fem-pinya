@@ -23,9 +23,9 @@ export async function POST(req: Request) {
       const [day, month, year] = date.split("-");
 const isoDate = `${year}-${month}-${day}`; // "2025-10-21"
 
-      const updatedDates = Array.isArray(existing?.published_dates)
-  ? Array.from(new Set([...existing.published_dates, date]))
-  : [date];
+const updatedDates = Array.isArray(existing?.published_dates)
+  ? Array.from(new Set([...existing.published_dates, isoDate]))
+  : [isoDate];
 
 
       // Update the layout
@@ -38,8 +38,13 @@ const isoDate = `${year}-${month}-${day}`; // "2025-10-21"
     }
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
-  } catch (err: any) {
+  } catch (err) {
+  if (err instanceof Error) {
     console.error("POST /api/layouts/publish failed:", err.message);
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
+  console.error("POST /api/layouts/publish failed:", err);
+  return new Response(JSON.stringify({ error: "Unknown error" }), { status: 500 });
+}
+
 }

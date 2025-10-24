@@ -1,20 +1,16 @@
 // src/app/api/layouts/route.ts
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { PinyaLayout } from "@/types/pinya";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date"); // optional ?date=YYYY-MM-DD
 
-    let query = supabase
-      .from("layouts")
-      .select("*")
-      .order("created_at", { ascending: false });
+    let query = supabase.from("layouts").select("*").order("created_at", { ascending: false });
 
     if (date) {
-      // ⚠️ You don’t have a 'date' column — but you have 'published_dates'
-      // so we’ll check if the formatted date is inside that array:
       query = query.contains("published_dates", [date]);
     }
 
@@ -25,31 +21,37 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json(data ?? []);
-  } catch (err: any) {
-    console.error("Unexpected /api/layouts error:", err.message);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    // Cast to PinyaLayout[] safely
+    return NextResponse.json(((data ?? []) as unknown) as PinyaLayout[]);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error("Unexpected /api/layouts error:", err.message);
+      return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+    console.error("Unexpected /api/layouts unknown error:", err);
+    return NextResponse.json({ error: "Unknown error" }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const newLayout = await request.json();
-    const { data, error } = await supabase.from("layouts").insert([
-      {
-        id: newLayout.id,
-        name: newLayout.name,
-        folder: newLayout.folder || null,
-        castellType: newLayout.castellType,
-        positions: newLayout.positions,
-      },
-    ]);
+    const newLayout: PinyaLayout = await request.json();
+
+    const { data, error } = await supabase.from("layouts").insert([newLayout]);
 
     if (error) throw error;
-    return NextResponse.json({ success: true, layout: data?.[0] ?? null });
-  } catch (err: any) {
-    console.error("POST /api/layouts error:", err.message);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+
+    return NextResponse.json({
+      success: true,
+      layout: (((data ?? []) as unknown) as PinyaLayout[])[0] ?? null,
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error("POST /api/layouts error:", err.message);
+      return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    }
+    console.error("POST /api/layouts unknown error:", err);
+    return NextResponse.json({ success: false, error: "Unknown error" }, { status: 500 });
   }
 }
 
@@ -62,8 +64,12 @@ export async function DELETE(request: Request) {
     if (error) throw error;
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
-    console.error("DELETE /api/layouts error:", err.message);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      console.error("DELETE /api/layouts error:", err.message);
+      return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    }
+    console.error("DELETE /api/layouts unknown error:", err);
+    return NextResponse.json({ success: false, error: "Unknown error" }, { status: 500 });
   }
 }

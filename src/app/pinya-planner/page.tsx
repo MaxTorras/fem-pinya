@@ -94,7 +94,7 @@ export default function PinyaPlannerPage() {
   const rotateNode = (nodeId: string) => {
     setNodes(prev =>
       prev.map(n => n.id === nodeId
-        ? { ...n, data: { ...n.data, rotation: ((n.data.rotation ?? 0) + 15) % 360 } }
+        ? { ...n, data: { ...n.data, rotation: ((n.data.rotation ?? 0) + 45) % 360 } }
         : n
       )
     );

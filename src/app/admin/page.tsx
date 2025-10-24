@@ -90,6 +90,46 @@ function DaySelector({
     </select>
   );
 }
+type FolderGroupProps = {
+  folderName: string;
+  layouts: PinyaLayout[];
+  selectedLayouts: string[];
+  setSelectedLayouts: React.Dispatch<React.SetStateAction<string[]>>;
+};
+
+function FolderGroup({ folderName, layouts, selectedLayouts, setSelectedLayouts }: FolderGroupProps) {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div className="border-2 border-[#2f2484] rounded">
+      <button
+        className="w-full text-left px-3 py-2 bg-gray-100 dark:bg-gray-800 font-semibold flex justify-between items-center"
+        onClick={() => setExpanded((prev) => !prev)}
+      >
+        {folderName} ({layouts.length})
+        <span className="ml-2">{expanded ? "▼" : "▶"}</span>
+      </button>
+      {expanded && (
+        <ul className="divide-y">
+          {layouts.map((layout) => (
+            <li key={layout.id} className="p-3 flex justify-between items-center">
+              <span>{layout.name}</span>
+              <input
+                type="checkbox"
+                checked={selectedLayouts.includes(layout.id)}
+                onChange={(e) =>
+                  setSelectedLayouts((prev) =>
+                    e.target.checked ? [...prev, layout.id] : prev.filter((id) => id !== layout.id)
+                  )
+                }
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export default function AdminPage() {
   const [loggedIn, setLoggedIn] = useState(false);
@@ -336,46 +376,51 @@ export default function AdminPage() {
           </ul>
         </div>
       ) : activeTab === "tecnica" ? (
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Tecnica – Select Layouts for Today</h2>
-          {layouts.length === 0 ? (
-            <p>No layouts available.</p>
-          ) : (
-            <ul className="border-2 border-[#2f2484] rounded divide-y">
-              {layouts.map((layout) => (
-                <li key={layout.id} className="p-3 flex justify-between items-center">
-                  <span>{layout.name} {layout.folder ? `(${layout.folder})` : ""}</span>
-                  <input
-                    type="checkbox"
-                    checked={selectedLayouts.includes(layout.id)}
-                    onChange={(e) => setSelectedLayouts((prev) =>
-                      e.target.checked ? [...prev, layout.id] : prev.filter((id) => id !== layout.id)
-                    )}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
-          <button
-            onClick={async () => {
-              try {
-                await fetch("/api/layouts/publish", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ date: isoDate, layoutIds: selectedLayouts }),
-                });
-                alert("✅ Layouts published for today!");
-              } catch (err) {
-                console.error(err);
-                alert("❌ Failed to publish layouts");
-              }
-            }}
-            className="bg-green-600 text-white px-4 py-2 rounded mt-2"
-          >
-            Publish Selected Layouts
-          </button>
-        </div>
-      ) : null}
+  <div className="space-y-4">
+    <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Tecnica – Select Layouts for Today</h2>
+    {layouts.length === 0 ? (
+      <p>No layouts available.</p>
+    ) : (
+      <div className="space-y-2">
+        {Object.entries(
+          layouts.reduce<Record<string, PinyaLayout[]>>((acc, layout) => {
+            const folder = layout.folder || "No Folder";
+            if (!acc[folder]) acc[folder] = [];
+            acc[folder].push(layout);
+            return acc;
+          }, {})
+        ).map(([folderName, folderLayouts]) => (
+          <FolderGroup
+            key={folderName}
+            folderName={folderName}
+            layouts={folderLayouts}
+            selectedLayouts={selectedLayouts}
+            setSelectedLayouts={setSelectedLayouts}
+          />
+        ))}
+      </div>
+    )}
+    <button
+      onClick={async () => {
+        try {
+          await fetch("/api/layouts/publish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date: isoDate, layoutIds: selectedLayouts }),
+          });
+          alert("✅ Layouts published for today!");
+        } catch (err) {
+          console.error(err);
+          alert("❌ Failed to publish layouts");
+        }
+      }}
+      className="bg-green-600 text-white px-4 py-2 rounded mt-2"
+    >
+      Publish Selected Layouts
+    </button>
+  </div>
+)
+ : null}
     </main>
   );
 }

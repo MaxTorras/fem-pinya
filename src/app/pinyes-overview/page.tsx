@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // ✅ import useRouter
+import { useRouter } from "next/navigation";
 import ReactFlow, { Node, Background, Controls } from "reactflow";
 import "reactflow/dist/style.css";
 import PinyaNode from "@/components/PinyaNode";
-import { PinyaLayout } from "@/types/pinya";
 import { Quicksand } from "next/font/google";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -15,9 +14,28 @@ import { isMobile } from "react-device-detect";
 const quicksand = Quicksand({ subsets: ["latin"], weight: ["400","600","700"] });
 const nodeTypes = { pinya: PinyaNode };
 
+type LayoutPosition = {
+  id: string;
+  label: string;
+  member?: string;
+  rotation?: number;
+  x: number;
+  y: number;
+};
+
+export type PinyaLayout = {
+  id: string;
+  name: string;
+  positions: LayoutPosition[];
+};
+
+type LayoutResponse = { layouts: PinyaLayout[] };
+
 export default function PinyesOverviewPage() {
-  const router = useRouter(); // ✅ define router
-  const [selectedDate, setSelectedDate] = useState("2025-10-21");
+  const router = useRouter();
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [layouts, setLayouts] = useState<PinyaLayout[]>([]);
   const [activeLayoutId, setActiveLayoutId] = useState<string | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -27,21 +45,30 @@ export default function PinyesOverviewPage() {
     const fetchLayouts = async () => {
       try {
         const res = await fetch(`/api/layouts/published?date=${selectedDate}`);
-        const data = await res.json();
-        setLayouts(data.layouts || []);
-        if (data.layouts?.length > 0) setActiveLayoutId(data.layouts[0].id);
-        else setActiveLayoutId(null);
+        const data = (await res.json()) as LayoutResponse;
+
+        setLayouts(Array.isArray(data.layouts) ? data.layouts : []);
+
+        if (Array.isArray(data.layouts) && data.layouts.length > 0) {
+          setActiveLayoutId(data.layouts[0].id);
+        } else {
+          setActiveLayoutId(null);
+        }
       } catch (err) {
         console.error("Failed to fetch published layouts", err);
+        setLayouts([]);
+        setActiveLayoutId(null);
       }
     };
+
     fetchLayouts();
   }, [selectedDate]);
 
   // Convert active layout to ReactFlow nodes
   useEffect(() => {
     const activeLayout = layouts.find((l) => l.id === activeLayoutId);
-    if (!activeLayout || !activeLayout.positions) {
+
+    if (!activeLayout?.positions?.length) {
       setNodes([]);
       return;
     }

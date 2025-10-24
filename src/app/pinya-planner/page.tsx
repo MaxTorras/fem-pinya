@@ -23,7 +23,6 @@ import TrashBin from "@/components/TrashBin";
 import { Member, PinyaLayout } from "@/types/pinya";
 
 type AttendanceRecord = { nickname: string };
-
 const nodeTypes = { pinya: PinyaNode };
 
 const quickRoles = [
@@ -69,7 +68,7 @@ export default function PinyaPlannerPage() {
       .then((data: { records: AttendanceRecord[] }) => {
         const presentMembers = data.records
           .map(r => members.find(m => m.nickname === r.nickname))
-          .filter((m): m is Member => m !== undefined);
+          .filter((m): m is Member => !!m);
         setAttendance(presentMembers);
       });
   }, [selectedDate, members]);
@@ -251,16 +250,52 @@ export default function PinyaPlannerPage() {
           <div className="p-2 border-b bg-white sticky top-0 z-10">
             <div className="mb-2">
               <label className="text-xs font-semibold mb-1 block">Select date:</label>
-              <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="border rounded p-1 w-full text-xs" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={e => setSelectedDate(e.target.value)}
+                className="border rounded p-1 w-full text-xs"
+              />
             </div>
 
             <div className="mb-2">
-              <input type="text" placeholder="Layout name" value={layoutName} onChange={e => setLayoutName(e.target.value)} className="border rounded p-1 w-full text-xs mb-1" />
-              <input type="text" placeholder="Folder name (optional)" value={folderName} onChange={e => setFolderName(e.target.value)} className="border rounded p-1 w-full text-xs mb-1" />
-              <button onClick={saveLayout} className="bg-blue-600 text-white px-2 py-1 rounded w-full text-xs mb-2">💾 Save Layout</button>
-              <button onClick={handleAutoAssign} className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700">⚡ Auto Assign</button>
-              <button onClick={exportLayoutAsImage} className="bg-purple-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-purple-700">📷 Export Layout</button>
-              <select value={selectedFolder} onChange={e => setSelectedFolder(e.target.value || undefined)} className="border rounded p-1 w-full text-xs mb-2">
+              <input
+                type="text"
+                placeholder="Layout name"
+                value={layoutName}
+                onChange={e => setLayoutName(e.target.value)}
+                className="border rounded p-1 w-full text-xs mb-1"
+              />
+              <input
+                type="text"
+                placeholder="Folder name (optional)"
+                value={folderName}
+                onChange={e => setFolderName(e.target.value)}
+                className="border rounded p-1 w-full text-xs mb-1"
+              />
+              <button
+                onClick={saveLayout}
+                className="bg-blue-600 text-white px-2 py-1 rounded w-full text-xs mb-2"
+              >
+                💾 Save Layout
+              </button>
+              <button
+                onClick={handleAutoAssign}
+                className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700"
+              >
+                ⚡ Auto Assign
+              </button>
+              <button
+                onClick={exportLayoutAsImage}
+                className="bg-purple-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-purple-700"
+              >
+                📷 Export Layout
+              </button>
+              <select
+                value={selectedFolder}
+                onChange={e => setSelectedFolder(e.target.value || undefined)}
+                className="border rounded p-1 w-full text-xs mb-2"
+              >
                 <option value="">All folders</option>
                 {folders.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
@@ -297,12 +332,21 @@ export default function PinyaPlannerPage() {
               onNodesChange={onNodesChange}
               nodeTypes={nodeTypes}
               fitView
-              onNodeDragStop={(event, node) => {
+              onNodeDragStop={(event: React.MouseEvent | React.TouchEvent, node) => {
                 const trash = document.getElementById("trash-bin");
                 if (!trash) return;
                 const rect = trash.getBoundingClientRect();
-                const x = 'clientX' in event ? event.clientX : (event as any).touches?.[0]?.clientX;
-                const y = 'clientY' in event ? event.clientY : (event as any).touches?.[0]?.clientY;
+
+                let x: number, y: number;
+                if ('clientX' in event) {
+                  x = event.clientX;
+                  y = event.clientY;
+                } else {
+                  const touchEvent = event as React.TouchEvent;
+                  x = touchEvent.touches[0]?.clientX ?? 0;
+                  y = touchEvent.touches[0]?.clientY ?? 0;
+                }
+
                 if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
                   setNodes(prev => prev.filter(n => n.id !== node.id));
                 }
@@ -319,7 +363,13 @@ export default function PinyaPlannerPage() {
         <div className="fixed top-4 right-4 bg-white rounded-xl shadow-md p-3 flex flex-col gap-2 max-h-[90vh] overflow-auto z-50 w-40">
           <h3 className="font-semibold text-center mb-1 text-sm">Add Role</h3>
           {quickRoles.map(role => (
-            <button key={role} onClick={() => addRole(role)} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-xs">+ {role}</button>
+            <button
+              key={role}
+              onClick={() => addRole(role)}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-xs"
+            >
+              + {role}
+            </button>
           ))}
         </div>
       </div>

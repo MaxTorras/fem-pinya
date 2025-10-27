@@ -127,30 +127,41 @@ export default function PinyaPlannerPage() {
     );
   };
 
-  // --- Auto-assign members to nodes based on position ---
   const handleAutoAssign = () => {
-    const available = [...(showAllMembers ? members : attendance)];
-    const updated = nodes.map(n => {
-      if (n.data?.member) return n;
+  const available = [...listSource]; // use currently visible members
+  const updated = nodes.map(n => {
+    if (n.data?.member) return n; // already assigned
 
-      const matchIndex = available.findIndex(
-        m => m.position?.toLowerCase() === (n.data.label ?? "").toLowerCase()
+    // Try primary position first
+    let matchIndex = available.findIndex(
+      m => m.position?.toLowerCase() === n.data.label?.toLowerCase()
+    );
+
+    // If no primary match, try secondary position
+    if (matchIndex === -1) {
+      matchIndex = available.findIndex(
+        m => m.position2?.toLowerCase() === n.data.label?.toLowerCase()
       );
-
-      if (matchIndex !== -1) {
-        const matched = available[matchIndex];
-        available.splice(matchIndex, 1);
-        return { ...n, data: { ...n.data, member: matched } };
-      }
-      return n;
-    });
-
-    setNodes(updated);
-    // If we were in checked-in mode, remove those assigned from attendance
-    if (!showAllMembers) {
-      setAttendance(prev => prev.filter(m => !updated.some(n => n.data?.member?.nickname === m.nickname)));
     }
-  };
+
+    if (matchIndex !== -1) {
+      const matched = available[matchIndex];
+      available.splice(matchIndex, 1); // remove from available
+      return { ...n, data: { ...n.data, member: matched } };
+    }
+
+    return n;
+  });
+
+  setNodes(updated);
+
+  // Remove assigned from the visible list only if using checked-in mode
+  if (!showAllMembers) {
+    setAttendance(attendance.filter(m => !updated.some(n => n.data?.member?.nickname === m.nickname)));
+  }
+};
+
+
 
   // --- Save layout ---
   const saveLayout = async () => {

@@ -16,7 +16,7 @@ export async function GET() {
   try {
     const sheets = await getSheets();
     const sheetId = process.env.GOOGLE_SHEET_ID!;
-    const range = "Members!A2:E";
+    const range = "Members!A2:F";
 
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
@@ -25,12 +25,13 @@ export async function GET() {
 
     const rows = result.data.values || [];
     const members = rows.map(
-  ([nickname, passwordHash, name, surname, position]) => ({
+  ([nickname, passwordHash, name, surname, position, position2]) => ({
     nickname,
     passwordHash,
     name,
     surname,
     position: position || null, // keep null if empty
+    position2: position2 || null,    // secondary/fallback position
     missingPosition: !position, // true if empty
   })
 );
@@ -52,21 +53,21 @@ export async function POST(req: Request) {
     const sheetId = process.env.GOOGLE_SHEET_ID!;
     const data = await req.json();
 
-    const { nickname, passwordHash = "", position = "New" } = data;
+    const { nickname, passwordHash = "", position = "New", position2 = "" } = data;
 
     if (!nickname) {
       return NextResponse.json({ error: "Nickname is required" }, { status: 400 });
     }
 
     // Append to Members sheet: fill A (nickname), B (passwordHash), leave C/D empty, E (position)
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: sheetId,
-      range: "Members!A2:E", // whole row range
-      valueInputOption: "RAW",
-      requestBody: {
-        values: [[nickname, passwordHash, "", "", position]],
-      },
-    });
+   await sheets.spreadsheets.values.append({
+  spreadsheetId: sheetId,
+  range: "Members!A2:F",
+  valueInputOption: "RAW",
+  requestBody: {
+    values: [[nickname, passwordHash, "", "", position, position2]],
+  },
+});
 
     return NextResponse.json({ success: true, member: { nickname, passwordHash, position } });
   } catch (err) {

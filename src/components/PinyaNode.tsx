@@ -49,29 +49,29 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
   }, [drag, drop]);
 
   // Determine background and text color
-  let bgColor = "bg-blue-500";
+  let bgColor = "bg-gray-400";
   let textColor = "text-white";
 
   if (data.member) {
-    if (data.member.position?.toLowerCase() === "new") {
-      bgColor = "bg-green-500";
-      textColor = "text-white";
-    } else if (data.label === "Baix") {
-      bgColor = "bg-red-600";
-    } else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
-      bgColor = "bg-yellow-400";
-      textColor = "text-black";
-    } else {
-      bgColor = "bg-blue-500";
-    }
+  if (data.member.position?.toLowerCase() === "new") {
+    bgColor = "bg-green-500";
+  } else if (data.label === "Baix") {
+    bgColor = "bg-red-600";
+  } else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
+    bgColor = "bg-yellow-400";
+    textColor = "text-black";
   } else {
-    if (data.label === "Baix") bgColor = "bg-red-600";
-    else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
-      bgColor = "bg-yellow-400";
-      textColor = "text-black";
-    } else bgColor = "bg-blue-500";
+    bgColor = "bg-blue-500"; // member assigned, regular role
   }
-
+} else {
+  // No member assigned
+  if (data.label === "Baix") bgColor = "bg-red-600";
+  else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
+    bgColor = "bg-yellow-400";
+    textColor = "text-black";
+  } 
+  // else keep default gray
+}
   // Smaller font for compact roles
   const smallRoles = ["Agulla", "Crossa", "Contrafort", "Tap"];
   const baseFont = smallRoles.includes(data.label) ? 12 : 14;

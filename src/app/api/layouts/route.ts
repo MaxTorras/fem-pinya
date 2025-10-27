@@ -21,14 +21,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Cast to PinyaLayout[] safely
     return NextResponse.json(((data ?? []) as unknown) as PinyaLayout[]);
   } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error("Unexpected /api/layouts error:", err.message);
-      return NextResponse.json({ error: err.message }, { status: 500 });
-    }
-    console.error("Unexpected /api/layouts unknown error:", err);
+    console.error("Unexpected /api/layouts GET error:", err);
     return NextResponse.json({ error: "Unknown error" }, { status: 500 });
   }
 }
@@ -37,20 +32,47 @@ export async function POST(request: Request) {
   try {
     const newLayout: PinyaLayout = await request.json();
 
+    // 1️⃣ Check if a layout with same name & folder exists
+    const { data: existingLayouts, error: fetchError } = await supabase
+      .from("layouts")
+      .select("*")
+      .eq("name", newLayout.name)
+      .eq("folder", newLayout.folder || null)
+      .limit(1);
+
+    if (fetchError) throw fetchError;
+
+    if (existingLayouts && existingLayouts.length > 0) {
+      // 2️⃣ Update existing layout instead of inserting
+      const layoutId = existingLayouts[0].id;
+      const { data: updatedData, error: updateError } = await supabase
+        .from("layouts")
+        .update(newLayout)
+        .eq("id", layoutId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      return NextResponse.json({
+        success: true,
+        message: "Layout updated",
+        layout: updatedData,
+      });
+    }
+
+    // 3️⃣ Insert new layout
     const { data, error } = await supabase.from("layouts").insert([newLayout]);
 
     if (error) throw error;
 
     return NextResponse.json({
       success: true,
+      message: "Layout created",
       layout: (((data ?? []) as unknown) as PinyaLayout[])[0] ?? null,
     });
   } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error("POST /api/layouts error:", err.message);
-      return NextResponse.json({ success: false, error: err.message }, { status: 500 });
-    }
-    console.error("POST /api/layouts unknown error:", err);
+    console.error("POST /api/layouts error:", err);
     return NextResponse.json({ success: false, error: "Unknown error" }, { status: 500 });
   }
 }
@@ -65,11 +87,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error("DELETE /api/layouts error:", err.message);
-      return NextResponse.json({ success: false, error: err.message }, { status: 500 });
-    }
-    console.error("DELETE /api/layouts unknown error:", err);
+    console.error("DELETE /api/layouts error:", err);
     return NextResponse.json({ success: false, error: "Unknown error" }, { status: 500 });
   }
 }

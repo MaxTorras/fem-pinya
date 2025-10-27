@@ -171,44 +171,46 @@ export default function PinyaPlannerPage() {
 
 
 
-  // --- Save layout ---
   const saveLayout = async () => {
-    if (!layoutName.trim()) return alert("Please name your layout!");
-    const layout: PinyaLayout = {
-      id: Date.now().toString(),
-      name: layoutName,
-      folder: folderName || undefined,
-      castellType: "4d7",
-      positions: nodes.map(n => ({
-        id: n.id,
-        label: n.data?.label ?? "",
-        x: n.position?.x ?? 0,
-        y: n.position?.y ?? 0,
-        member: n.data?.member,
-        rotation: n.data?.rotation ?? 0,
-      })),
-    };
+  if (!layoutName.trim()) return alert("Please name your layout!");
 
-    try {
-      const res = await fetch("/api/layouts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(layout),
-      });
-      const data = await res.json();
-      if (data.success) {
-        alert(`✅ Layout '${layoutName}' saved!`);
-        setLayoutName("");
-        setFolderName("");
-        fetchLayouts();
-      } else {
-        alert("❌ Failed to save layout");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("❌ Error saving layout");
-    }
+  const layout: PinyaLayout = {
+    id: Date.now().toString(),
+    name: layoutName,
+    folder: folderName || undefined,
+    castellType: "4d7",
+    positions: nodes.map(n => ({
+      id: n.id,
+      label: n.data?.label ?? "",
+      x: n.position?.x ?? 0,
+      y: n.position?.y ?? 0,
+      member: n.data?.member,
+      rotation: n.data?.rotation ?? 0,
+    })),
   };
+
+  try {
+    const res = await fetch("/api/layouts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(layout),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      alert(`✅ Layout '${layoutName}' ${data.message}`);
+      setLayoutName("");
+      setFolderName("");
+      fetchLayouts();
+    } else {
+      alert("❌ Failed to save layout");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error saving layout");
+  }
+};
+
 
   // --- Load layout ---
   const loadLayout = (layout: PinyaLayout) => {

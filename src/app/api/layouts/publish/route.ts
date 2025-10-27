@@ -1,4 +1,3 @@
-// src/app/api/layouts/publish/route.ts
 import { supabase } from "@/lib/supabase";
 
 export async function POST(req: Request) {
@@ -19,14 +18,13 @@ export async function POST(req: Request) {
 
       if (fetchError) throw fetchError;
 
+      // Use date as-is (YYYY-MM-DD)
+      const isoDate = date;
+
       // Ensure uniqueness
-      const [day, month, year] = date.split("-");
-const isoDate = `${year}-${month}-${day}`; // "2025-10-21"
-
-const updatedDates = Array.isArray(existing?.published_dates)
-  ? Array.from(new Set([...existing.published_dates, isoDate]))
-  : [isoDate];
-
+      const updatedDates = Array.isArray(existing?.published_dates)
+        ? Array.from(new Set([...existing.published_dates, isoDate]))
+        : [isoDate];
 
       // Update the layout
       const { error: updateError } = await supabase
@@ -39,12 +37,11 @@ const updatedDates = Array.isArray(existing?.published_dates)
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (err) {
-  if (err instanceof Error) {
-    console.error("POST /api/layouts/publish failed:", err.message);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    if (err instanceof Error) {
+      console.error("POST /api/layouts/publish failed:", err.message);
+      return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    }
+    console.error("POST /api/layouts/publish failed:", err);
+    return new Response(JSON.stringify({ error: "Unknown error" }), { status: 500 });
   }
-  console.error("POST /api/layouts/publish failed:", err);
-  return new Response(JSON.stringify({ error: "Unknown error" }), { status: 500 });
-}
-
 }

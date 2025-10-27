@@ -109,14 +109,17 @@ export default function PinyaPlannerPage() {
   };
 
   const removeMemberFromNode = (nodeId: string) => {
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node?.data?.member) return;
-    // if showing checked-in mode, put back into attendance
-    setAttendance(prev => [...prev, node.data.member]);
-    setNodes(prev =>
-      prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member: undefined } } : n)
-    );
-  };
+  const node = nodes.find(n => n.id === nodeId);
+  if (!node?.data?.member) return;
+
+  // Remove from node first
+  setNodes(prev =>
+    prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member: undefined } } : n)
+  );
+
+  // Add back to attendance (checked-in mode)
+  setAttendance(prev => [...prev, node.data.member]);
+};
 
   const rotateNode = (nodeId: string) => {
     setNodes(prev =>
@@ -259,16 +262,22 @@ export default function PinyaPlannerPage() {
   }));
 
   // --- Organize members for the left panel ---
-  // Use 'showAllMembers' to decide source: members (all) or attendance (checked-in)
-  const listSource = showAllMembers ? members : attendance;
+// listSource = members (all) or attendance (checked-in)
+const listSource = showAllMembers ? members : attendance;
 
-  const positionsMap: Record<string, Member[]> = {};
-  listSource.forEach(m => {
-    const key = m.position ?? "No role";
-    if (!positionsMap[key]) positionsMap[key] = [];
-    // keep sorting stable (optional)
-    positionsMap[key].push(m);
-  });
+// Compute which members are already assigned to nodes
+const assignedNicknames = nodes.map(n => n.data?.member?.nickname).filter(Boolean) as string[];
+
+// Only show members who are not assigned to any node
+const visibleMembers = listSource.filter(m => !assignedNicknames.includes(m.nickname));
+
+// Map positions
+const positionsMap: Record<string, Member[]> = {};
+visibleMembers.forEach(m => {
+  const key = m.position ?? "No role";
+  if (!positionsMap[key]) positionsMap[key] = [];
+  positionsMap[key].push(m);
+});
 
   // --- Folder filtering helpers ---
   const folders = Array.from(new Set(savedLayouts.map(l => l.folder).filter(Boolean))) as string[];
@@ -593,7 +602,7 @@ export default function PinyaPlannerPage() {
                         ))}
                       </div>
                     ))
-                  )}
+                  )}  
                 </div>
               </div>
             </div>

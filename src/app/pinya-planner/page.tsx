@@ -160,8 +160,13 @@ export default function PinyaPlannerPage() {
 
   // Remove assigned from the visible list only if using checked-in mode
   if (!showAllMembers) {
-    setAttendance(attendance.filter(m => !updated.some(n => n.data?.member?.nickname === m.nickname)));
-  }
+  setAttendance(prev =>
+    prev.filter(m => 
+      !updated.some(n => n.data?.member?.nickname === m.nickname) || m.position === "Baix"
+    )
+  );
+}
+
 };
 
 
@@ -263,13 +268,17 @@ export default function PinyaPlannerPage() {
 
   // --- Organize members for the left panel ---
 // listSource = members (all) or attendance (checked-in)
+// Compute left panel members
 const listSource = showAllMembers ? members : attendance;
+
 
 // Compute which members are already assigned to nodes
 const assignedNicknames = nodes.map(n => n.data?.member?.nickname).filter(Boolean) as string[];
 
 // Only show members who are not assigned to any node
-const visibleMembers = listSource.filter(m => !assignedNicknames.includes(m.nickname));
+const visibleMembers = listSource.filter(m => 
+  !assignedNicknames.includes(m.nickname) || m.position === "Baix"
+);
 
 // Map positions
 const positionsMap: Record<string, Member[]> = {};

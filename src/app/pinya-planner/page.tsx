@@ -161,9 +161,13 @@ export default function PinyaPlannerPage() {
   // Remove assigned from the visible list only if using checked-in mode
   if (!showAllMembers) {
   setAttendance(prev =>
-    prev.filter(m => 
-      !updated.some(n => n.data?.member?.nickname === m.nickname) || m.position === "Baix"
-    )
+    prev.filter(m => {
+      const isAssigned = updated.some(n => n.data?.member?.nickname === m.nickname);
+      const isAssignedToBaix = updated.some(
+        n => n.data?.label === "Baix" && n.data?.member?.nickname === m.nickname
+      );
+      return !isAssigned || isAssignedToBaix;
+    })
   );
 }
 
@@ -278,9 +282,15 @@ const listSource = showAllMembers ? members : attendance;
 const assignedNicknames = nodes.map(n => n.data?.member?.nickname).filter(Boolean) as string[];
 
 // Only show members who are not assigned to any node
-const visibleMembers = listSource.filter(m => 
-  !assignedNicknames.includes(m.nickname) || m.position === "Baix"
-);
+const visibleMembers = listSource.filter(m => {
+  const isAssigned = assignedNicknames.includes(m.nickname);
+  const isAssignedToBaix = nodes.some(
+    n => n.data?.label?.toLowerCase().includes("baix") &&
+         n.data?.member?.nickname === m.nickname
+  );
+  return !isAssigned || isAssignedToBaix;
+});
+
 
 // Map positions
 const positionsMap: Record<string, Member[]> = {};

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,6 +11,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { TouchBackend } from "react-dnd-touch-backend";
 import { isMobile } from "react-device-detect";
+import { Member } from "@/types/pinya";
 
 const quicksand = Quicksand({ subsets: ["latin"], weight: ["400","600","700"] });
 const nodeTypes = { pinya: PinyaNode };
@@ -17,7 +19,7 @@ const nodeTypes = { pinya: PinyaNode };
 type LayoutPosition = {
   id: string;
   label: string;
-  member?: any; // full Member object
+  member?: Member; // full Member object
   rotation?: number;
   x: number;
   y: number;

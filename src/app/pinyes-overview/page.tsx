@@ -94,6 +94,7 @@ export default function PinyesOverviewPage() {
           member: pos.member, // pass full object as-is
           rotation: pos.rotation || 0,
           highlight: isHighlighted,
+          showRotateButton: false, // hides button here
         },
       };
     });

@@ -16,6 +16,7 @@ type PinyaNodeProps = {
     onRemove?: () => void;
     checkedIn?: boolean;
     highlight?: boolean; // ✅ highlight search match
+    showRotateButton?: boolean; // ✅ new prop
   };
 };
 
@@ -137,15 +138,17 @@ if (data.highlight) {
         {data.member ? data.member.nickname : data.label}
       </span>
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          data.onRotate?.();
-        }}
-        className="absolute -top-2 -right-2 bg-white text-black rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
-      >
-        ⟳
-      </button>
+      {data.showRotateButton && (
+  <button
+    onClick={(e) => {
+      e.stopPropagation();
+      data.onRotate?.();
+    }}
+    className="absolute -top-2 -right-2 bg-white text-black rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
+  >
+    ⟳
+  </button>
+)}
 
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />

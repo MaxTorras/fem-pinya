@@ -230,11 +230,17 @@ const removeMemberFromNode = (nodeId: string) => {
   const loadLayout = (layout: PinyaLayout) => {
   if (!layout.positions) return;
   const loadedNodes: Node[] = layout.positions.map(p => ({
-    id: p.id,
-    type: "pinya",
-    position: { x: p.x, y: p.y },
-    data: { label: p.label, member: p.member, rotation: p.rotation ?? 0 },
-  }));
+  id: p.id,
+  type: "pinya",
+  position: { x: p.x, y: p.y },
+  data: {
+    label: p.label,
+    member: p.member,
+    rotation: p.rotation ?? 0,
+    showRotateButton: true, // ✅ add this
+  },
+}));
+
   setNodes(loadedNodes);
   setCurrentLayout(layout); // ✅ store the currently loaded layout
   if (isMobile) setLeftDrawerOpen(false);
@@ -294,9 +300,15 @@ const updateLayout = async () => {
   const addRole = (role: string) => {
     const id = `${role.toLowerCase()}_${Date.now()}`;
     setNodes(prev => [
-      { id, type: "pinya", position: { x: 400, y: Math.max(50, 100 - prev.length * 50) }, data: { label: role, rotation: 0 } },
-      ...prev,
-    ]);
+  {
+    id,
+    type: "pinya",
+    position: { x: 400, y: Math.max(50, 100 - prev.length * 50) },
+    data: { label: role, rotation: 0, showRotateButton: true }, // ✅ add this
+  },
+  ...prev,
+]);
+
   };
 
   // --- Node handlers & mapping handlers into node data ---
@@ -317,6 +329,7 @@ const updateLayout = async () => {
         onRemove: () => removeMemberFromNode(n.id),
         onRotate: () => rotateNode(n.id),
         checkedIn: isCheckedIn, // ✅ passes to PinyaNode
+        showRotateButton: n.data?.showRotateButton ?? true, // ensure it’s there
       },
     };
   });

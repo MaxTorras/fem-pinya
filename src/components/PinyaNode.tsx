@@ -14,6 +14,7 @@ type PinyaNodeProps = {
     onRotate?: () => void;
     onAssign?: (member: Member) => void;
     onRemove?: () => void;
+    checkedIn?: boolean; // ✅ new prop from planner
   };
 };
 
@@ -42,36 +43,44 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
   });
 
   useEffect(() => {
-    if (ref.current) {
-      drag(ref.current);
-      drop(ref.current);
-    }
-  }, [drag, drop]);
+  const el = ref.current;
+  if (el) {
+    const timeout = setTimeout(() => {
+      try {
+        drag(el);
+        drop(el);
+      } catch (err) {
+        console.warn("DnD setup failed:", err);
+      }
+    }, 10);
+    return () => clearTimeout(timeout);
+  }
+}, [drag, drop]);
+
 
   // Determine background and text color
   let bgColor = "bg-gray-400";
   let textColor = "text-white";
 
   if (data.member) {
-  if (data.member.position?.toLowerCase() === "new") {
-    bgColor = "bg-green-500";
-  } else if (data.label === "Baix") {
-    bgColor = "bg-red-600";
-  } else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
-    bgColor = "bg-yellow-400";
-    textColor = "text-black";
+    if (data.member.position?.toLowerCase() === "new") {
+      bgColor = "bg-green-500";
+    } else if (data.label === "Baix") {
+      bgColor = "bg-red-600";
+    } else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
+      bgColor = "bg-yellow-400";
+      textColor = "text-black";
+    } else {
+      bgColor = "bg-blue-500";
+    }
   } else {
-    bgColor = "bg-blue-500"; // member assigned, regular role
+    if (data.label === "Baix") bgColor = "bg-red-600";
+    else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
+      bgColor = "bg-yellow-400";
+      textColor = "text-black";
+    }
   }
-} else {
-  // No member assigned
-  if (data.label === "Baix") bgColor = "bg-red-600";
-  else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
-    bgColor = "bg-yellow-400";
-    textColor = "text-black";
-  } 
-  // else keep default gray
-}
+
   // Smaller font for compact roles
   const smallRoles = ["Agulla", "Crossa", "Contrafort", "Tap"];
   const baseFont = smallRoles.includes(data.label) ? 12 : 14;
@@ -98,10 +107,16 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
       style={{
         transform: `rotate(${rotation}deg)`,
         transformOrigin: "center center",
-        border: isOver && canDrop ? "2px dashed green" : "none",
+        border: isOver && canDrop ? "2px dashed green"
+          : data.checkedIn
+          ? "3px solid #22c55e" // ✅ green border if checked in
+          : "2px solid transparent",
+        boxShadow: data.checkedIn
+          ? "0 0 10px rgba(34,197,94,0.6)"
+          : "none",
         opacity: isDragging ? 0.5 : 1,
       }}
-      className={`relative flex flex-col items-center justify-center ${bgColor} ${textColor} px-2 py-1 rounded shadow cursor-pointer select-none min-w-[70px] min-h-[40px]`}
+      className={`relative flex flex-col items-center justify-center ${bgColor} ${textColor} px-2 py-1 rounded shadow cursor-pointer select-none min-w-[70px] min-h-[40px] transition-all duration-200`}
       onClick={() => data.member && data.onRemove?.()}
     >
       <span
@@ -111,8 +126,6 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
       >
         {data.member ? data.member.nickname : data.label}
       </span>
-
-      {/* Removed position below nickname */}
 
       <button
         onClick={(e) => {

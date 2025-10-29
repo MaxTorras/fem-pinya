@@ -101,25 +101,31 @@ export default function PinyaPlannerPage() {
 
   // --- Helpers: assign/remove/rotate nodes ---
   const assignMemberToNode = (nodeId: string, member: Member) => {
-    setNodes(prev =>
-      prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member } } : n)
-    );
-    // remove from attendance list (if we are using checked-in list)
-    setAttendance(prev => prev.filter(m => m.nickname !== member.nickname));
-  };
+  setNodes(prev =>
+    prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member } } : n)
+  );
 
-  const removeMemberFromNode = (nodeId: string) => {
+  // Remove from left panel only if using checked-in mode
+  if (!showAllMembers) {
+    setAttendance(prev =>
+      prev.filter(m => m.nickname !== member.nickname)
+    );
+  }
+};
+
+const removeMemberFromNode = (nodeId: string) => {
   const node = nodes.find(n => n.id === nodeId);
   if (!node?.data?.member) return;
 
-  // Remove from node first
   setNodes(prev =>
-    prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member: undefined } } : n)
+    prev.map(n =>
+      n.id === nodeId ? { ...n, data: { ...n.data, member: undefined } } : n
+    )
   );
 
-  // Add back to attendance (checked-in mode)
-  setAttendance(prev => [...prev, node.data.member]);
+  // The member is still checked-in, so will appear in left panel automatically
 };
+
 
   const rotateNode = (nodeId: string) => {
     setNodes(prev =>
@@ -261,16 +267,25 @@ export default function PinyaPlannerPage() {
   const onNodesChange: OnNodesChange = (changes: NodeChange[]) =>
     setNodes(nds => applyNodeChanges(changes, nds));
 
-  const nodesWithHandlers = nodes.map(n => ({
-    ...n,
-    key: `${n.id}_${n.data?.rotation ?? 0}`,
-    data: {
-      ...(n.data ?? {}),
-      onAssign: (m: Member) => assignMemberToNode(n.id, m),
-      onRemove: () => removeMemberFromNode(n.id),
-      onRotate: () => rotateNode(n.id),
-    },
-  }));
+  const nodesWithHandlers = useMemo(() => {
+  return nodes.map(n => {
+    const member = n.data?.member;
+    const isCheckedIn = !!member && attendance.some(a => a.nickname === member.nickname);
+
+    return {
+      ...n,
+      key: n.id,
+      data: {
+        ...(n.data ?? {}),
+        onAssign: (m: Member) => assignMemberToNode(n.id, m),
+        onRemove: () => removeMemberFromNode(n.id),
+        onRotate: () => rotateNode(n.id),
+        checkedIn: isCheckedIn, // ✅ passes to PinyaNode
+      },
+    };
+  });
+}, [nodes, attendance]); // 👈 ADD attendance as a dependency
+
 
   // --- Organize members for the left panel ---
 // listSource = members (all) or attendance (checked-in)
@@ -279,17 +294,23 @@ const listSource = showAllMembers ? members : attendance;
 
 
 // Compute which members are already assigned to nodes
-const assignedNicknames = nodes.map(n => n.data?.member?.nickname).filter(Boolean) as string[];
+const assignedNicknames = nodes
+  .map(n => n.data?.member?.nickname)
+  .filter(Boolean) as string[];
 
-// Only show members who are not assigned to any node
+// Only show members who are not assigned to any node, except Baix roles
 const visibleMembers = listSource.filter(m => {
   const isAssigned = assignedNicknames.includes(m.nickname);
+
+  // Special case: if someone is assigned to Baix, still show them
   const isAssignedToBaix = nodes.some(
     n => n.data?.label?.toLowerCase().includes("baix") &&
          n.data?.member?.nickname === m.nickname
   );
+
   return !isAssigned || isAssignedToBaix;
 });
+
 
 
 // Map positions
@@ -412,9 +433,13 @@ visibleMembers.forEach(m => {
               Object.keys(positionsMap).map(pos => (
                 <div key={pos} className="mb-4">
                   <h3 className="font-bold text-sm mb-1">{pos}</h3>
-                  {positionsMap[pos].map(member => (
-                    <AttendanceMember key={member.nickname} member={member} />
-                  ))}
+                  {positionsMap[pos].map((member, i) => (
+  <AttendanceMember
+    key={`${member.nickname}-${pos}-${i}`} // ✅ guaranteed unique
+    member={member}
+  />
+))}
+
                 </div>
               ))
             )}

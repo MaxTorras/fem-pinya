@@ -47,6 +47,8 @@ export default function PinyaPlannerPage() {
   const [addRoleOpen, setAddRoleOpen] = useState(true); // collapsible Add Role panel
   const [loadingLayouts, setLoadingLayouts] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
+  const [currentLayout, setCurrentLayout] = useState<PinyaLayout | null>(null);
+
 
 
   // --- Fetch layouts ---
@@ -226,18 +228,50 @@ const removeMemberFromNode = (nodeId: string) => {
 
   // --- Load layout ---
   const loadLayout = (layout: PinyaLayout) => {
-    if (!layout.positions) return;
-    const loadedNodes: Node[] = layout.positions.map(p => ({
-      id: p.id,
-      type: "pinya",
-      position: { x: p.x, y: p.y },
-      data: { label: p.label, member: p.member, rotation: p.rotation ?? 0 },
-    }));
-    setNodes(loadedNodes);
-    // close drawer on mobile for better canvas view
-    if (isMobile) setLeftDrawerOpen(false);
+  if (!layout.positions) return;
+  const loadedNodes: Node[] = layout.positions.map(p => ({
+    id: p.id,
+    type: "pinya",
+    position: { x: p.x, y: p.y },
+    data: { label: p.label, member: p.member, rotation: p.rotation ?? 0 },
+  }));
+  setNodes(loadedNodes);
+  setCurrentLayout(layout); // ✅ store the currently loaded layout
+  if (isMobile) setLeftDrawerOpen(false);
+};
+const updateLayout = async () => {
+  if (!currentLayout) return alert("No layout loaded!");
+
+  const updatedLayout: PinyaLayout = {
+    ...currentLayout, // preserve name, folder, castellType
+    positions: nodes.map(n => ({
+      id: n.id,
+      label: n.data?.label ?? "",
+      x: n.position?.x ?? 0,
+      y: n.position?.y ?? 0,
+      member: n.data?.member,
+      rotation: n.data?.rotation ?? 0,
+    })),
   };
 
+  try {
+    const res = await fetch("/api/layouts", {
+      method: "PUT", // use PUT to update
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedLayout),
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(`✅ Layout '${currentLayout.name}' updated!`);
+      fetchLayouts(); // refresh the saved layouts
+    } else {
+      alert("❌ Failed to update layout");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error updating layout");
+  }
+};
   // --- Delete layout ---
   const deleteLayout = async (id: string) => {
     if (!confirm("Delete this layout?")) return;
@@ -394,6 +428,14 @@ filteredMembers.forEach(m => {
               >
                 💾 Save Layout
               </button>
+              {currentLayout && (
+  <button
+    onClick={updateLayout}
+    className="bg-yellow-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-yellow-700"
+  >
+    🔄 Update Layout
+  </button>
+)}
               <button
                 onClick={handleAutoAssign}
                 className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700"

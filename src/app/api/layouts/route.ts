@@ -63,7 +63,6 @@ export async function POST(request: Request) {
 
     // 3️⃣ Insert new layout
     const { data, error } = await supabase.from("layouts").insert([newLayout]);
-
     if (error) throw error;
 
     return NextResponse.json({
@@ -73,6 +72,29 @@ export async function POST(request: Request) {
     });
   } catch (err: unknown) {
     console.error("POST /api/layouts error:", err);
+    return NextResponse.json({ success: false, error: "Unknown error" }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const updatedLayout: PinyaLayout = await request.json();
+    if (!updatedLayout.id) {
+      return NextResponse.json({ success: false, error: "Missing layout ID" }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from("layouts")
+      .update(updatedLayout)
+      .eq("id", updatedLayout.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true, message: "Layout updated", layout: data });
+  } catch (err: unknown) {
+    console.error("PUT /api/layouts error:", err);
     return NextResponse.json({ success: false, error: "Unknown error" }, { status: 500 });
   }
 }

@@ -17,7 +17,7 @@ const nodeTypes = { pinya: PinyaNode };
 type LayoutPosition = {
   id: string;
   label: string;
-  member?: string;
+  member?: any; // full Member object
   rotation?: number;
   x: number;
   y: number;
@@ -33,14 +33,13 @@ type LayoutResponse = { layouts: PinyaLayout[] };
 
 export default function PinyesOverviewPage() {
   const router = useRouter();
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [layouts, setLayouts] = useState<PinyaLayout[]>([]);
   const [activeLayoutId, setActiveLayoutId] = useState<string | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
+  const [memberSearch, setMemberSearch] = useState("");
 
-  // Fetch published layouts for the selected date
+  // Fetch published layouts
   useEffect(() => {
     const fetchLayouts = async () => {
       try {
@@ -73,15 +72,32 @@ export default function PinyesOverviewPage() {
       return;
     }
 
-    const allNodes: Node[] = activeLayout.positions.map((pos) => ({
-      id: `${activeLayout.id}_${pos.id}`,
-      type: "pinya",
-      position: { x: pos.x, y: pos.y },
-      data: { label: pos.label, member: pos.member, rotation: pos.rotation || 0 },
-    }));
+    const allNodes: Node[] = activeLayout.positions.map((pos) => {
+      // safely get member nickname for search
+      const memberName =
+        pos.member && typeof pos.member === "object"
+          ? pos.member.nickname ?? ""
+          : "";
+
+      const isHighlighted =
+        memberSearch &&
+        memberName.toLowerCase().includes(memberSearch.toLowerCase());
+
+      return {
+        id: `${activeLayout.id}_${pos.id}`,
+        type: "pinya",
+        position: { x: pos.x, y: pos.y },
+        data: {
+          label: pos.label,
+          member: pos.member, // pass full object as-is
+          rotation: pos.rotation || 0,
+          highlight: isHighlighted,
+        },
+      };
+    });
 
     setNodes(allNodes);
-  }, [activeLayoutId, layouts]);
+  }, [activeLayoutId, layouts, memberSearch]);
 
   return (
     <main className={`${quicksand.className} p-6 min-h-screen bg-white dark:bg-gray-900`}>
@@ -97,6 +113,17 @@ export default function PinyesOverviewPage() {
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
           className="border rounded p-1"
+        />
+      </div>
+
+      {/* Search bar */}
+      <div className="mb-4 flex items-center gap-2">
+        <input
+          type="text"
+          placeholder="Search your name..."
+          value={memberSearch}
+          onChange={(e) => setMemberSearch(e.target.value)}
+          className="border rounded p-1 flex-1"
         />
       </div>
 

@@ -14,7 +14,8 @@ type PinyaNodeProps = {
     onRotate?: () => void;
     onAssign?: (member: Member) => void;
     onRemove?: () => void;
-    checkedIn?: boolean; // ✅ new prop from planner
+    checkedIn?: boolean;
+    highlight?: boolean; // ✅ highlight search match
   };
 };
 
@@ -24,14 +25,12 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
   const textRef = useRef<HTMLSpanElement>(null);
   const [fontSize, setFontSize] = useState(14);
 
-  // Drag for trash
   const [{ isDragging }, drag] = useDrag({
     type: "ROLE_NODE",
     item: { nodeId: data.id },
     collect: (monitor) => ({ isDragging: !!monitor.isDragging() }),
   });
 
-  // Drop target for members
   const [{ isOver, canDrop }, drop] = useDrop({
     accept: "MEMBER",
     drop: (item: Member) => data.onAssign?.(item),
@@ -43,42 +42,52 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
   });
 
   useEffect(() => {
-  const el = ref.current;
-  if (el) {
-    const timeout = setTimeout(() => {
-      try {
-        drag(el);
-        drop(el);
-      } catch (err) {
-        console.warn("DnD setup failed:", err);
-      }
-    }, 10);
-    return () => clearTimeout(timeout);
-  }
-}, [drag, drop]);
-
+    const el = ref.current;
+    if (el) {
+      const timeout = setTimeout(() => {
+        try {
+          drag(el);
+          drop(el);
+        } catch (err) {
+          console.warn("DnD setup failed:", err);
+        }
+      }, 10);
+      return () => clearTimeout(timeout);
+    }
+  }, [drag, drop]);
 
   // Determine background and text color
-  let bgColor = "bg-gray-400";
-  let textColor = "text-white";
+  // Determine background and text color
+let bgColor = "bg-gray-400";
+let textColor = "text-white";
 
-  if (data.member) {
-    if (data.member.position?.toLowerCase() === "new") {
-      bgColor = "bg-green-500";
-    } else if (data.label === "Baix") {
-      bgColor = "bg-red-600";
-    } else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
-      bgColor = "bg-yellow-400";
-      textColor = "text-black";
-    } else {
-      bgColor = "bg-blue-500";
-    }
+if (data.highlight) {
+  bgColor = "bg-yellow-500"; // gold highlight if searched
+  textColor = "text-black";
+} else if (data.member) {
+  if (data.member.position?.toLowerCase() === "new") {
+    bgColor = "bg-green-500";
+  } else if (data.label === "Baix") {
+    bgColor = "bg-red-600";
+  } else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
+    bgColor = "bg-yellow-400";
+    textColor = "text-black";
   } else {
-    if (data.label === "Baix") bgColor = "bg-red-600";
-    else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
-      bgColor = "bg-yellow-400";
-      textColor = "text-black";
-    }
+    bgColor = "bg-blue-500";
+  }
+} else {
+  if (data.label === "Baix") bgColor = "bg-red-600";
+  else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
+    bgColor = "bg-yellow-400";
+    textColor = "text-black";
+  }
+}
+
+
+  // ✅ Override background if highlighted
+  if (data.highlight) {
+    bgColor = "bg-yellow-500"; // gold-ish color
+    textColor = "text-black";
   }
 
   // Smaller font for compact roles
@@ -107,9 +116,10 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
       style={{
         transform: `rotate(${rotation}deg)`,
         transformOrigin: "center center",
-        border: isOver && canDrop ? "2px dashed green"
+        border: isOver && canDrop
+          ? "2px dashed green"
           : data.checkedIn
-          ? "3px solid #22c55e" // ✅ green border if checked in
+          ? "3px solid #22c55e"
           : "2px solid transparent",
         boxShadow: data.checkedIn
           ? "0 0 10px rgba(34,197,94,0.6)"

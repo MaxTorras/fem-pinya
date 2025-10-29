@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 type Member = { nickname: string; name?: string; surname?: string; position?: string };
 type LayoutPosition = { id: string; label: string; x: number; y: number; member?: Member; rotation?: number };
 type AttendanceRecord = { date: string; nickname: string; timestamp: string };
-type PinyaLayout = { id: string; name: string; folder?: string; positions?: LayoutPosition[] };
+type PinyaLayout = { id: string; name: string; folder?: string; positions?: LayoutPosition[]; publishedDates?: string[]; };
 type Tab = "attendance" | "members" | "positions" | "stats" | "tecnica";
 type MembersResponse = { members: Member[] };
 type AttendanceResponse = { records: AttendanceRecord[] };
@@ -350,68 +350,130 @@ export default function AdminPage() {
         </div>
       ) : (
         // --- TECNICA TAB ---
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Tecnica – Select Layouts for Today</h2>
+<div className="space-y-4">
+  <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Tecnica – Select Layouts for Today</h2>
+
+  {/* Buttons */}
+  <div className="flex gap-2 mb-2">
+    <button
+      onClick={async () => {
+        try {
+          await fetch("/api/layouts/publish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ date: isoDate, layoutIds: selectedLayouts }),
+          });
+
+          // Update local state to mark published
+          setLayouts((prev) =>
+  prev.map((layout) =>
+    selectedLayouts.includes(layout.id)
+      ? { ...layout, publishedDates: [...(layout.publishedDates || []), isoDate] }
+      : layout
+  )
+);
+
+          alert("✅ Layouts published for today!");
+        } catch (err) {
+          console.error(err);
+          alert("❌ Failed to publish layouts");
+        }
+      }}
+      className="bg-green-600 text-white px-4 py-2 rounded"
+    >
+      Publish Selected Layouts
+    </button>
+
+    <button
+      onClick={async () => {
+        try {
+          await fetch("/api/layouts/unpublish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ layoutIds: selectedLayouts }),
+          });
+
+          // Update local state to remove all published dates
+          setLayouts((prev) =>
+  prev.map((layout) =>
+    selectedLayouts.includes(layout.id) ? { ...layout, publishedDates: [] } : layout
+  )
+);
+
+          alert("🗑️ Layouts fully unpublished!");
+        } catch (err) {
+          console.error(err);
+          alert("❌ Failed to unpublish layouts");
+        }
+      }}
+      className="bg-red-600 text-white px-4 py-2 rounded"
+    >
+      Unpublish Selected Layouts
+    </button>
+  </div>
+
+  {/* Layouts */}
+  {layouts.length === 0 ? (
+    <p>No layouts available.</p>
+  ) : (
+    <div className="space-y-2">
+      {Object.entries(
+        layouts.reduce<Record<string, PinyaLayout[]>>((acc, layout) => {
+          const folder = layout.folder || "No Folder";
+          if (!acc[folder]) acc[folder] = [];
+          acc[folder].push(layout);
+          return acc;
+        }, {})
+      ).map(([folderName, folderLayouts]) => (
+        <div key={folderName} className="border-2 border-[#2f2484] rounded">
           <button
-            onClick={async () => {
-              try {
-                await fetch("/api/layouts/publish", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ date: isoDate, layoutIds: selectedLayouts }),
-                });
-                alert("✅ Layouts published for today!");
-              } catch (err) {
-                console.error(err);
-                alert("❌ Failed to publish layouts");
-              }
+            className="w-full text-left px-3 py-2 bg-gray-100 dark:bg-gray-800 font-semibold flex justify-between items-center"
+            onClick={() => {
+              // toggle expanded handled inside FolderGroup previously
+              // you can keep FolderGroup as is
             }}
-            className="bg-green-600 text-white px-4 py-2 rounded mt-2"
           >
-            Publish Selected Layouts
+            {folderName} ({folderLayouts.length})
           </button>
-          <button
-  onClick={async () => {
-    try {
-      await fetch("/api/layouts/unpublish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ layoutIds: selectedLayouts }),
-      });
-      alert("🗑️ Layouts fully unpublished!");
-    } catch (err) {
-      console.error(err);
-      alert("❌ Failed to unpublish layouts");
-    }
-  }}
-  className="bg-red-600 text-white px-4 py-2 rounded mt-2 ml-2"
->
-  Unpublish Selected Layouts
-</button>
-          {layouts.length === 0 ? (
-            <p>No layouts available.</p>
-          ) : (
-            <div className="space-y-2">
-              {Object.entries(
-                layouts.reduce<Record<string, PinyaLayout[]>>((acc, layout) => {
-                  const folder = layout.folder || "No Folder";
-                  if (!acc[folder]) acc[folder] = [];
-                  acc[folder].push(layout);
-                  return acc;
-                }, {})
-              ).map(([folderName, folderLayouts]) => (
-                <FolderGroup
-                  key={folderName}
-                  folderName={folderName}
-                  layouts={folderLayouts}
-                  selectedLayouts={selectedLayouts}
-                  setSelectedLayouts={setSelectedLayouts}
-                />
-              ))}
-            </div>
-          )}
-          
+          <ul className="divide-y">
+            {folderLayouts.map((layout) => {
+              const isSelected = selectedLayouts.includes(layout.id);
+              const isPublished =
+  Array.isArray(layout.publishedDates) && layout.publishedDates.length > 0;
+
+              return (
+                <li
+                  key={layout.id}
+                  className={`p-3 flex justify-between items-center cursor-pointer transition
+                    ${isSelected ? "bg-blue-100" : isPublished ? "bg-green-50" : ""}`}
+                  onClick={() =>
+                    setSelectedLayouts((prev) =>
+                      prev.includes(layout.id)
+                        ? prev.filter((id) => id !== layout.id)
+                        : [...prev, layout.id]
+                    )
+                  }
+                >
+                  <span>{layout.name}</span>
+                  {isPublished ? (
+                    <span className="text-xs text-green-700 font-semibold bg-green-100 px-2 py-0.5 rounded-full">
+                      Published
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                      Unpublished
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         </div>
+      ))}
+    </div>
+  )}
+</div>
+
       )}
     </main>
   );

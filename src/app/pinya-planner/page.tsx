@@ -442,12 +442,7 @@ filteredMembers.forEach(m => {
               >
                 ⚡ Auto Assign
               </button>
-              <button
-                onClick={exportLayoutAsImage}
-                className="bg-purple-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-purple-700"
-              >
-                📷 Export Layout
-              </button>
+
 
               <div className="flex gap-2 mb-2">
                 <select
@@ -666,18 +661,21 @@ filteredMembers.forEach(m => {
                 >
                   💾 Save Layout
                 </button>
+                {currentLayout && (
+  <button
+    onClick={updateLayout}
+    className="bg-yellow-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-yellow-700"
+  >
+    🔄 Update Layout
+  </button>
+)}
                 <button
                   onClick={handleAutoAssign}
                   className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700"
                 >
                   ⚡ Auto Assign
                 </button>
-                <button
-                  onClick={exportLayoutAsImage}
-                  className="bg-purple-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-purple-700"
-                >
-                  📷 Export Layout
-                </button>
+
               </div>
 
               <div className="mb-3">

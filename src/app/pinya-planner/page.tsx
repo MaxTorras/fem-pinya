@@ -46,6 +46,8 @@ export default function PinyaPlannerPage() {
   const [leftDrawerOpen, setLeftDrawerOpen] = useState(false); // for mobile bottom drawer
   const [addRoleOpen, setAddRoleOpen] = useState(true); // collapsible Add Role panel
   const [loadingLayouts, setLoadingLayouts] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
+
 
   // --- Fetch layouts ---
   const fetchLayouts = async () => {
@@ -299,6 +301,7 @@ const assignedNicknames = nodes
   .filter(Boolean) as string[];
 
 // Only show members who are not assigned to any node, except Baix roles
+// Only show members who are not assigned to any node, except Baix roles
 const visibleMembers = listSource.filter(m => {
   const isAssigned = assignedNicknames.includes(m.nickname);
 
@@ -311,15 +314,24 @@ const visibleMembers = listSource.filter(m => {
   return !isAssigned || isAssignedToBaix;
 });
 
+// Apply search filter on top
+const filteredMembers = visibleMembers.filter(m => {
+  const search = memberSearch.toLowerCase();
+  return (
+    m.nickname.toLowerCase().includes(search) ||
+    (m.name?.toLowerCase().includes(search) ?? false) ||
+    (m.surname?.toLowerCase().includes(search) ?? false)
+  );
+});
 
-
-// Map positions
+// Map positions for left panel
 const positionsMap: Record<string, Member[]> = {};
-visibleMembers.forEach(m => {
+filteredMembers.forEach(m => {
   const key = m.position ?? "No role";
   if (!positionsMap[key]) positionsMap[key] = [];
   positionsMap[key].push(m);
 });
+
 
   // --- Folder filtering helpers ---
   const folders = Array.from(new Set(savedLayouts.map(l => l.folder).filter(Boolean))) as string[];
@@ -425,25 +437,36 @@ visibleMembers.forEach(m => {
             </div>
           </div>
 
-          {/* Members list (desktop) */}
-          <div className="flex-1 overflow-y-auto p-3 bg-gray-50">
-            {Object.keys(positionsMap).length === 0 ? (
-              <div className="text-xs text-gray-500">No members to show</div>
-            ) : (
-              Object.keys(positionsMap).map(pos => (
-                <div key={pos} className="mb-4">
-                  <h3 className="font-bold text-sm mb-1">{pos}</h3>
-                  {positionsMap[pos].map((member, i) => (
-  <AttendanceMember
-    key={`${member.nickname}-${pos}-${i}`} // ✅ guaranteed unique
-    member={member}
-  />
-))}
+         {/* Members list (desktop) */}
+<div className="flex-1 overflow-y-auto p-3 bg-gray-50">
+  {/* Search input */}
+  <div className="mb-2">
+    <input
+      type="text"
+      placeholder="Search members..."
+      value={memberSearch}
+      onChange={e => setMemberSearch(e.target.value)}
+      className="border rounded p-1 text-xs w-full"
+    />
+  </div>
 
-                </div>
-              ))
-            )}
-          </div>
+  {Object.keys(positionsMap).length === 0 ? (
+    <div className="text-xs text-gray-500">No members to show</div>
+  ) : (
+    Object.keys(positionsMap).map(pos => (
+      <div key={pos} className="mb-4">
+        <h3 className="font-bold text-sm mb-1">{pos}</h3>
+        {positionsMap[pos].map((member, i) => (
+          <AttendanceMember
+            key={`${member.nickname}-${pos}-${i}`} // ✅ guaranteed unique
+            member={member}
+          />
+        ))}
+      </div>
+    ))
+  )}
+</div>
+
         </div>
 
         {/* --- MAIN CANVAS --- */}
@@ -636,20 +659,33 @@ visibleMembers.forEach(m => {
                 </div>
 
                 <div>
-                  <h4 className="font-semibold mb-2 text-sm">Members</h4>
-                  {Object.keys(positionsMap).length === 0 ? (
-                    <div className="text-xs text-gray-500">No members to show</div>
-                  ) : (
-                    Object.keys(positionsMap).map(pos => (
-                      <div key={pos} className="mb-3">
-                        <h5 className="font-medium text-xs mb-1">{pos}</h5>
-                        {positionsMap[pos].map(member => (
-                          <AttendanceMember key={member.nickname} member={member} />
-                        ))}
-                      </div>
-                    ))
-                  )}  
-                </div>
+  <h4 className="font-semibold mb-2 text-sm">Members</h4>
+
+  {/* Search input */}
+  <div className="mb-2">
+    <input
+      type="text"
+      placeholder="Search members..."
+      value={memberSearch}
+      onChange={e => setMemberSearch(e.target.value)}
+      className="border rounded p-1 text-xs w-full"
+    />
+  </div>
+
+  {Object.keys(positionsMap).length === 0 ? (
+    <div className="text-xs text-gray-500">No members to show</div>
+  ) : (
+    Object.keys(positionsMap).map(pos => (
+      <div key={pos} className="mb-3">
+        <h5 className="font-medium text-xs mb-1">{pos}</h5>
+        {positionsMap[pos].map(member => (
+          <AttendanceMember key={member.nickname} member={member} />
+        ))}
+      </div>
+    ))
+  )}  
+</div>
+
               </div>
             </div>
           </div>

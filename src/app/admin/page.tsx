@@ -352,6 +352,42 @@ export default function AdminPage() {
         // --- TECNICA TAB ---
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Tecnica – Select Layouts for Today</h2>
+          <button
+            onClick={async () => {
+              try {
+                await fetch("/api/layouts/publish", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ date: isoDate, layoutIds: selectedLayouts }),
+                });
+                alert("✅ Layouts published for today!");
+              } catch (err) {
+                console.error(err);
+                alert("❌ Failed to publish layouts");
+              }
+            }}
+            className="bg-green-600 text-white px-4 py-2 rounded mt-2"
+          >
+            Publish Selected Layouts
+          </button>
+          <button
+  onClick={async () => {
+    try {
+      await fetch("/api/layouts/unpublish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ layoutIds: selectedLayouts }),
+      });
+      alert("🗑️ Layouts fully unpublished!");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to unpublish layouts");
+    }
+  }}
+  className="bg-red-600 text-white px-4 py-2 rounded mt-2 ml-2"
+>
+  Unpublish Selected Layouts
+</button>
           {layouts.length === 0 ? (
             <p>No layouts available.</p>
           ) : (
@@ -374,24 +410,7 @@ export default function AdminPage() {
               ))}
             </div>
           )}
-          <button
-            onClick={async () => {
-              try {
-                await fetch("/api/layouts/publish", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ date: isoDate, layoutIds: selectedLayouts }),
-                });
-                alert("✅ Layouts published for today!");
-              } catch (err) {
-                console.error(err);
-                alert("❌ Failed to publish layouts");
-              }
-            }}
-            className="bg-green-600 text-white px-4 py-2 rounded mt-2"
-          >
-            Publish Selected Layouts
-          </button>
+          
         </div>
       )}
     </main>

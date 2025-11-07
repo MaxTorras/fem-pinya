@@ -202,7 +202,7 @@ export default function PinyesOverviewPage() {
     >
       {/* Top Bar (collapsible on mobile) */}
       <div className="relative z-20 bg-white dark:bg-gray-800 shadow-md">
-        <div className="flex justify-between items-center p-2 md:p-4">
+        <div className="flex justify-between items-center p-1 md:p-0">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="md:hidden text-gray-800 dark:text-gray-200"

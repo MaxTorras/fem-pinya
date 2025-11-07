@@ -11,6 +11,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { TouchBackend } from "react-dnd-touch-backend";
 import { isMobile } from "react-device-detect";
 import { Member } from "@/types/pinya";
+import { Menu, X } from "lucide-react";
 
 const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
 const nodeTypes = { pinya: PinyaNode };
@@ -41,6 +42,7 @@ export default function PinyesOverviewPage() {
   const [rotation, setRotation] = useState(0);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const lastAngle = useRef<number | null>(null);
@@ -195,48 +197,68 @@ export default function PinyesOverviewPage() {
   }, [offset]);
 
   return (
-    <main className={`${quicksand.className} w-full h-screen bg-white dark:bg-gray-900 flex flex-col`}>
-     {/* Top bar */}
-<div className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 shadow z-10 overflow-x-auto min-h-[60px]">
-  <button
-    onClick={() => router.push("/")}
-    className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 text-base"
-  >
-    ← Main Page
-  </button>
+    <main
+      className={`${quicksand.className} w-full h-screen bg-white dark:bg-gray-900 flex flex-col`}
+    >
+      {/* Top Bar (collapsible on mobile) */}
+      <div className="relative z-20 bg-white dark:bg-gray-800 shadow-md">
+        <div className="flex justify-between items-center p-2 md:p-4">
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden text-gray-800 dark:text-gray-200"
+          >
+            {menuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+          <h1 className="font-semibold text-lg md:text-xl mx-auto md:mx-0">
+            Pinya Overview
+          </h1>
+        </div>
 
-  <input
-    type="text"
-    placeholder="Search your name..."
-    value={memberSearch}
-    onChange={(e) => setMemberSearch(e.target.value)}
-    className="border rounded px-4 py-2 flex-1 min-w-[140px] text-base"
-  />
-
-  {layouts.length > 1 && (
-    <div className="flex gap-2 flex-nowrap">
-      {layouts.map((layout) => (
-        <button
-          key={layout.id}
-          className={`px-4 py-2 rounded font-semibold whitespace-nowrap text-base transition ${
-            activeLayoutId === layout.id
-              ? "bg-[#2f2484] text-yellow-400"
-              : "bg-gray-200 text-gray-700 hover:bg-[#2f2484] hover:text-yellow-400"
+        {/* Collapsible menu */}
+        <div
+          className={`flex flex-col md:flex-row md:items-center md:gap-3 transition-all duration-300 overflow-hidden ${
+            menuOpen ? "max-h-96 p-3" : "max-h-0 md:max-h-none md:p-3"
           }`}
-          onClick={() => setActiveLayoutId(layout.id)}
         >
-          {layout.name}
-        </button>
-      ))}
-    </div>
-  )}
-</div>
+          <button
+            onClick={() => router.push("/")}
+            className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 mb-2 md:mb-0"
+          >
+            ← Main Page
+          </button>
 
+          <input
+            type="text"
+            placeholder="Search your name..."
+            value={memberSearch}
+            onChange={(e) => setMemberSearch(e.target.value)}
+            className="border rounded px-4 py-2 flex-1 text-base mb-2 md:mb-0"
+          />
 
-      {/* Fullscreen ReactFlow Canvas */}
+          {layouts.length > 1 && (
+            <div className="flex gap-2 flex-wrap">
+              {layouts.map((layout) => (
+                <button
+                  key={layout.id}
+                  className={`px-4 py-2 rounded font-semibold whitespace-nowrap text-base transition ${
+                    activeLayoutId === layout.id
+                      ? "bg-[#2f2484] text-yellow-400"
+                      : "bg-gray-200 text-gray-700 hover:bg-[#2f2484] hover:text-yellow-400"
+                  }`}
+                  onClick={() => setActiveLayoutId(layout.id)}
+                >
+                  {layout.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Canvas area */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-hidden relative touch-none border-t"
+        className="flex-1 overflow-hidden relative touch-none"
         style={{
           transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale}) rotate(${rotation}deg)`,
           transformOrigin: "center center",

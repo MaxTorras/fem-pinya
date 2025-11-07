@@ -196,41 +196,42 @@ export default function PinyesOverviewPage() {
 
   return (
     <main className={`${quicksand.className} w-full h-screen bg-white dark:bg-gray-900 flex flex-col`}>
-      {/* Top bar */}
-      <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 shadow z-10 overflow-x-auto">
+     {/* Top bar */}
+<div className="flex items-center gap-3 p-4 bg-white dark:bg-gray-800 shadow z-10 overflow-x-auto min-h-[60px]">
+  <button
+    onClick={() => router.push("/")}
+    className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2 rounded font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 text-base"
+  >
+    ← Main Page
+  </button>
+
+  <input
+    type="text"
+    placeholder="Search your name..."
+    value={memberSearch}
+    onChange={(e) => setMemberSearch(e.target.value)}
+    className="border rounded px-4 py-2 flex-1 min-w-[140px] text-base"
+  />
+
+  {layouts.length > 1 && (
+    <div className="flex gap-2 flex-nowrap">
+      {layouts.map((layout) => (
         <button
-          onClick={() => router.push("/")}
-          className="bg-gray-200 text-gray-800 px-3 py-1 rounded font-semibold hover:bg-gray-300"
+          key={layout.id}
+          className={`px-4 py-2 rounded font-semibold whitespace-nowrap text-base transition ${
+            activeLayoutId === layout.id
+              ? "bg-[#2f2484] text-yellow-400"
+              : "bg-gray-200 text-gray-700 hover:bg-[#2f2484] hover:text-yellow-400"
+          }`}
+          onClick={() => setActiveLayoutId(layout.id)}
         >
-          ← Main Page
+          {layout.name}
         </button>
+      ))}
+    </div>
+  )}
+</div>
 
-        <input
-          type="text"
-          placeholder="Search your name..."
-          value={memberSearch}
-          onChange={(e) => setMemberSearch(e.target.value)}
-          className="border rounded px-3 py-1 flex-1 min-w-[120px]"
-        />
-
-        {layouts.length > 1 && (
-          <div className="flex gap-2 flex-nowrap">
-            {layouts.map((layout) => (
-              <button
-                key={layout.id}
-                className={`px-3 py-1 rounded font-semibold whitespace-nowrap transition ${
-                  activeLayoutId === layout.id
-                    ? "bg-[#2f2484] text-yellow-400"
-                    : "bg-gray-200 text-gray-700 hover:bg-[#2f2484] hover:text-yellow-400"
-                }`}
-                onClick={() => setActiveLayoutId(layout.id)}
-              >
-                {layout.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Fullscreen ReactFlow Canvas */}
       <div

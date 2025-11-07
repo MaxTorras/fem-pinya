@@ -47,18 +47,17 @@ export default function PinyesOverviewPage() {
   const lastDistance = useRef<number | null>(null);
   const lastCenter = useRef<{ x: number; y: number } | null>(null);
 
-  // Fetch published layouts (no date filter anymore)
+  // Fetch today's layouts
   useEffect(() => {
     const fetchLayouts = async () => {
       try {
         const today = new Date().toISOString().split("T")[0];
-const res = await fetch(`/api/layouts/published?date=${today}`);
-
+        const res = await fetch(`/api/layouts/published?date=${today}`);
         const data = (await res.json()) as LayoutResponse;
         setLayouts(Array.isArray(data.layouts) ? data.layouts : []);
         if (data.layouts?.length) setActiveLayoutId(data.layouts[0].id);
       } catch (err) {
-        console.error("Failed to fetch published layouts", err);
+        console.error("Failed to fetch layouts", err);
         setLayouts([]);
       }
     };
@@ -98,7 +97,7 @@ const res = await fetch(`/api/layouts/published?date=${today}`);
     setNodes(allNodes);
   }, [activeLayoutId, layouts, memberSearch]);
 
-  // Handle pinch rotation & zoom
+  // Handle pinch rotation & zoom for mobile
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -156,12 +155,56 @@ const res = await fetch(`/api/layouts/published?date=${today}`);
     };
   }, []);
 
+  // Desktop zoom & drag
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    let isDragging = false;
+    let start = { x: 0, y: 0 };
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      setScale((s) => Math.min(3, Math.max(0.3, s * delta)));
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      isDragging = true;
+      start = { x: e.clientX - offset.x, y: e.clientY - offset.y };
+    };
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging) return;
+      setOffset({ x: e.clientX - start.x, y: e.clientY - start.y });
+    };
+    const handleMouseUp = () => {
+      isDragging = false;
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    el.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+      el.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [offset]);
+
   return (
-    <main
-      className={`${quicksand.className} w-full h-[calc(100vh-64px)] bg-white dark:bg-gray-900 flex flex-col`}
-    >
-      {/* Top controls bar */}
+    <main className={`${quicksand.className} w-full h-screen bg-white dark:bg-gray-900 flex flex-col`}>
+      {/* Top bar */}
       <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 shadow z-10 overflow-x-auto">
+        <button
+          onClick={() => router.push("/")}
+          className="bg-gray-200 text-gray-800 px-3 py-1 rounded font-semibold hover:bg-gray-300"
+        >
+          ← Main Page
+        </button>
+
         <input
           type="text"
           placeholder="Search your name..."
@@ -169,6 +212,7 @@ const res = await fetch(`/api/layouts/published?date=${today}`);
           onChange={(e) => setMemberSearch(e.target.value)}
           className="border rounded px-3 py-1 flex-1 min-w-[120px]"
         />
+
         {layouts.length > 1 && (
           <div className="flex gap-2 flex-nowrap">
             {layouts.map((layout) => (

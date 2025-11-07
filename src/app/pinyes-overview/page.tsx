@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import ReactFlow, { Node, Background, Controls } from "reactflow";
 import "reactflow/dist/style.css";
@@ -13,13 +12,13 @@ import { TouchBackend } from "react-dnd-touch-backend";
 import { isMobile } from "react-device-detect";
 import { Member } from "@/types/pinya";
 
-const quicksand = Quicksand({ subsets: ["latin"], weight: ["400","600","700"] });
+const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
 const nodeTypes = { pinya: PinyaNode };
 
 type LayoutPosition = {
   id: string;
   label: string;
-  member?: Member; // full Member object
+  member?: Member;
   rotation?: number;
   x: number;
   y: number;
@@ -35,51 +34,48 @@ type LayoutResponse = { layouts: PinyaLayout[] };
 
 export default function PinyesOverviewPage() {
   const router = useRouter();
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [layouts, setLayouts] = useState<PinyaLayout[]>([]);
   const [activeLayoutId, setActiveLayoutId] = useState<string | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
+  const [rotation, setRotation] = useState(0);
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
 
-  // Fetch published layouts
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lastAngle = useRef<number | null>(null);
+  const lastDistance = useRef<number | null>(null);
+  const lastCenter = useRef<{ x: number; y: number } | null>(null);
+
+  // Fetch published layouts (no date filter anymore)
   useEffect(() => {
     const fetchLayouts = async () => {
       try {
-        const res = await fetch(`/api/layouts/published?date=${selectedDate}`);
+        const today = new Date().toISOString().split("T")[0];
+const res = await fetch(`/api/layouts/published?date=${today}`);
+
         const data = (await res.json()) as LayoutResponse;
-
         setLayouts(Array.isArray(data.layouts) ? data.layouts : []);
-
-        if (Array.isArray(data.layouts) && data.layouts.length > 0) {
-          setActiveLayoutId(data.layouts[0].id);
-        } else {
-          setActiveLayoutId(null);
-        }
+        if (data.layouts?.length) setActiveLayoutId(data.layouts[0].id);
       } catch (err) {
         console.error("Failed to fetch published layouts", err);
         setLayouts([]);
-        setActiveLayoutId(null);
       }
     };
-
     fetchLayouts();
-  }, [selectedDate]);
+  }, []);
 
   // Convert active layout to ReactFlow nodes
   useEffect(() => {
     const activeLayout = layouts.find((l) => l.id === activeLayoutId);
-
     if (!activeLayout?.positions?.length) {
       setNodes([]);
       return;
     }
 
     const allNodes: Node[] = activeLayout.positions.map((pos) => {
-      // safely get member nickname for search
       const memberName =
-        pos.member && typeof pos.member === "object"
-          ? pos.member.nickname ?? ""
-          : "";
+        pos.member && typeof pos.member === "object" ? pos.member.nickname ?? "" : "";
 
       const isHighlighted =
         memberSearch &&
@@ -91,10 +87,10 @@ export default function PinyesOverviewPage() {
         position: { x: pos.x, y: pos.y },
         data: {
           label: pos.label,
-          member: pos.member, // pass full object as-is
+          member: pos.member,
           rotation: pos.rotation || 0,
           highlight: isHighlighted,
-          showRotateButton: false, // hides button here
+          showRotateButton: false,
         },
       };
     });
@@ -102,75 +98,122 @@ export default function PinyesOverviewPage() {
     setNodes(allNodes);
   }, [activeLayoutId, layouts, memberSearch]);
 
+  // Handle pinch rotation & zoom
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const getDistance = (t1: Touch, t2: Touch) =>
+      Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    const getCenter = (t1: Touch, t2: Touch) => ({
+      x: (t1.clientX + t2.clientX) / 2,
+      y: (t1.clientY + t2.clientY) / 2,
+    });
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const [t1, t2] = e.touches;
+        const dx = t2.clientX - t1.clientX;
+        const dy = t2.clientY - t1.clientY;
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+        const distance = getDistance(t1, t2);
+        const center = getCenter(t1, t2);
+
+        if (lastAngle.current !== null) {
+          const delta = angle - lastAngle.current;
+          setRotation((r) => r + delta);
+        }
+
+        if (lastDistance.current !== null) {
+          const zoom = distance / lastDistance.current;
+          setScale((s) => Math.min(3, Math.max(0.3, s * zoom)));
+        }
+
+        if (lastCenter.current) {
+          const moveX = center.x - lastCenter.current.x;
+          const moveY = center.y - lastCenter.current.y;
+          setOffset((o) => ({ x: o.x + moveX, y: o.y + moveY }));
+        }
+
+        lastAngle.current = angle;
+        lastDistance.current = distance;
+        lastCenter.current = center;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      lastAngle.current = null;
+      lastDistance.current = null;
+      lastCenter.current = null;
+    };
+
+    el.addEventListener("touchmove", handleTouchMove);
+    el.addEventListener("touchend", handleTouchEnd);
+
+    return () => {
+      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, []);
+
   return (
-    <main className={`${quicksand.className} p-6 min-h-screen bg-white dark:bg-gray-900`}>
-      <h1 className="text-3xl font-bold text-[#2f2484] dark:text-yellow-400 mb-6">
-        Pinyes Overview
-      </h1>
-
-      {/* Date selector */}
-      <div className="mb-4 flex items-center gap-2">
-        <label className="font-semibold">Select Date:</label>
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="border rounded p-1"
-        />
-      </div>
-
-      {/* Search bar */}
-      <div className="mb-4 flex items-center gap-2">
+    <main
+      className={`${quicksand.className} w-full h-[calc(100vh-64px)] bg-white dark:bg-gray-900 flex flex-col`}
+    >
+      {/* Top controls bar */}
+      <div className="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 shadow z-10 overflow-x-auto">
         <input
           type="text"
           placeholder="Search your name..."
           value={memberSearch}
           onChange={(e) => setMemberSearch(e.target.value)}
-          className="border rounded p-1 flex-1"
+          className="border rounded px-3 py-1 flex-1 min-w-[120px]"
         />
+        {layouts.length > 1 && (
+          <div className="flex gap-2 flex-nowrap">
+            {layouts.map((layout) => (
+              <button
+                key={layout.id}
+                className={`px-3 py-1 rounded font-semibold whitespace-nowrap transition ${
+                  activeLayoutId === layout.id
+                    ? "bg-[#2f2484] text-yellow-400"
+                    : "bg-gray-200 text-gray-700 hover:bg-[#2f2484] hover:text-yellow-400"
+                }`}
+                onClick={() => setActiveLayoutId(layout.id)}
+              >
+                {layout.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Layout selector */}
-      {layouts.length > 1 && (
-        <div className="mb-4 flex gap-2 flex-wrap">
-          {layouts.map((layout) => (
-            <button
-              key={layout.id}
-              className={`px-3 py-1 rounded font-semibold transition ${
-                activeLayoutId === layout.id
-                  ? "bg-[#2f2484] text-yellow-400"
-                  : "bg-gray-200 text-gray-700 hover:bg-[#2f2484] hover:text-yellow-400"
-              }`}
-              onClick={() => setActiveLayoutId(layout.id)}
-            >
-              {layout.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ReactFlow diagram */}
-      {nodes.length === 0 ? (
-        <p>No layouts published for this date.</p>
-      ) : (
-        <div className="border h-[70vh]">
+      {/* Fullscreen ReactFlow Canvas */}
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-hidden relative touch-none border-t"
+        style={{
+          transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale}) rotate(${rotation}deg)`,
+          transformOrigin: "center center",
+          transition: "transform 0.05s linear",
+        }}
+      >
+        {nodes.length === 0 ? (
+          <p className="p-4 text-gray-500">No layouts published.</p>
+        ) : (
           <DndProvider backend={isMobile ? TouchBackend : HTML5Backend}>
-            <ReactFlow nodes={nodes} nodeTypes={nodeTypes} fitView>
+            <ReactFlow
+              nodes={nodes}
+              nodeTypes={nodeTypes}
+              fitView
+              nodesDraggable={false}
+              nodesConnectable={false}
+            >
               <Background />
               <Controls />
             </ReactFlow>
           </DndProvider>
-        </div>
-      )}
-
-      {/* Button to go to Check-In */}
-      <div className="mt-4">
-        <button
-          onClick={() => router.push("/check-in")}
-          className="bg-[#2f2484] text-yellow-400 px-4 py-2 rounded font-semibold hover:bg-yellow-400 hover:text-[#2f2484] transition"
-        >
-          Go to Check-In
-        </button>
+        )}
       </div>
     </main>
   );

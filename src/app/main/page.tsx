@@ -1,4 +1,5 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 "use client";
 
 import { useState, useMemo, useEffect, useContext } from "react";

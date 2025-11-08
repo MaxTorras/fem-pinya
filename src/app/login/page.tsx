@@ -11,12 +11,21 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(true);
 
   useEffect(() => {
-    // Auto-login if user is remembered
+  try {
     const savedUser = localStorage.getItem("pinyaUser");
-    if (savedUser) {
+    if (!savedUser) return; // nothing saved
+
+    const parsed = JSON.parse(savedUser);
+    if (parsed && parsed.nickname) {
+      // valid user
       router.push("/main");
     }
-  }, [router]);
+  } catch (err) {
+    console.warn("Invalid stored user, clearing localStorage", err);
+    localStorage.removeItem("pinyaUser");
+  }
+}, [router]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +39,10 @@ export default function LoginPage() {
     const data = await res.json();
 
     if (data.success) {
-      if (remember) {
-        localStorage.setItem("pinyaUser", JSON.stringify(data.user));
-      }
-      router.push("/main");
+  if (remember) {
+    localStorage.setItem("pinyaUser", JSON.stringify(data));
+  }
+  router.push("/main");
     } else {
       alert(data.error || "Login failed");
     }

@@ -179,7 +179,7 @@ export default function MainPage() {
                       <span>{day.date()}</span>
                       <div className="flex gap-0.5 mt-0.5">
                         {eventsOnDay.slice(0, 3).map((ev) => {
-                          let color = ev.folder === "Performances"
+                          const color = ev.folder === "Performances"
                             ? "#2f2484"
                             : ev.folder === "Rehearsals"
                             ? "#FFD700"
@@ -223,7 +223,7 @@ export default function MainPage() {
                 <span>{day.format("D")}</span>
                 <div className="flex gap-0.5 mt-0.5">
                   {eventsOnDay.slice(0, 3).map((ev) => {
-                    let color = ev.folder === "Performances"
+                    const color = ev.folder === "Performances"
                       ? "#2f2484"
                       : ev.folder === "Rehearsals"
                       ? "#FFD700"

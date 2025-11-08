@@ -1,3 +1,4 @@
+// src\app\admin\page.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 "use client";
@@ -13,8 +14,9 @@ import PositionsTab from "./components/PositionsTab";
 import StatsTab from "./components/StatsTab";
 import TecnicaTab from "./components/TecnicaTab";
 import VotesTab from "./components/VotesTab";
+import EventsTab from "./components/EventsTab";
 
-type TabType = "attendance" | "members" | "positions" | "stats" | "tecnica" | "votes";
+type TabType = "attendance" | "members" | "positions" | "stats" | "tecnica" | "votes" | "events";
 
 const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
@@ -55,10 +57,10 @@ export default function AdminPage() {
       <h1 className="text-3xl font-bold text-[#2f2484] dark:text-yellow-400 mb-6">Admin Dashboard</h1>
 
       <Tabs
-        tabs={["attendance", "members", "positions", "stats", "tecnica", "votes"]}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-      />
+  tabs={["attendance", "members", "positions", "stats", "tecnica", "votes", "events"]} // ✅ lowercase
+  activeTab={activeTab}
+  setActiveTab={setActiveTab}
+/>
 
       {loading ? (
         <p>Loading...</p>
@@ -70,6 +72,7 @@ export default function AdminPage() {
           {activeTab === "stats" && <StatsTab attendance={attendance} members={members} />}
           {activeTab === "tecnica" && <TecnicaTab layouts={layouts} />}
           {activeTab === "votes" && <VotesTab members={members} />}
+          {activeTab === "events" && <EventsTab />}
         </>
       )}
     </main>

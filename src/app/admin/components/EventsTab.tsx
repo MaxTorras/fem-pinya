@@ -1,4 +1,3 @@
-// src\app\events\page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,7 +12,7 @@ type Event = {
   folder: string;
 };
 
-export default function EventsAdminPage() {
+export default function EventsTab() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState("");
@@ -24,7 +23,6 @@ export default function EventsAdminPage() {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Load events from Supabase
   const loadEvents = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -42,7 +40,6 @@ export default function EventsAdminPage() {
     loadEvents();
   }, []);
 
-  // Save or update event
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -61,7 +58,6 @@ export default function EventsAdminPage() {
       result = await supabase.from("events").insert([newEvent]);
     }
 
-    console.log("Save result:", result); // Debugging
     if (result.error) console.error("Supabase insert/update error:", result.error);
     else {
       setTitle("");
@@ -92,8 +88,8 @@ export default function EventsAdminPage() {
   };
 
   return (
-    <main className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Left: Add/Edit Form */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Left: Form */}
       <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
         <h1 className="text-2xl font-bold text-[#2f2484] mb-1">
           {editingId ? "Edit Event" : "Add New Event"}
@@ -187,9 +183,7 @@ export default function EventsAdminPage() {
 
       {/* Right: Event List */}
       <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-xl font-bold text-[#2f2484] mb-4">
-          All Events
-        </h2>
+        <h2 className="text-xl font-bold text-[#2f2484] mb-4">All Events</h2>
         {loading ? (
           <p>Loading events...</p>
         ) : events.length === 0 ? (
@@ -226,6 +220,6 @@ export default function EventsAdminPage() {
           </ul>
         )}
       </div>
-    </main>
+    </div>
   );
 }

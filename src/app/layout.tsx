@@ -2,6 +2,7 @@ import Link from "next/link";
 import "./globals.css";
 import AdminKeyButton from "@/components/AdminKeyButton";
 import { Quicksand } from "next/font/google";
+import HeaderClient from "@/components/HeaderClient";
 
 const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
@@ -29,20 +30,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icons/icon-512x512.png" />
       </head>
 
-      <body className={`${quicksand.className} relative min-h-screen bg-gray-50 text-gray-900`}>
-        {/* Fixed header */}
-        <header className="flex items-center bg-[#2f2484] text-white p-4 shadow-md">
-          <Link href="/" className="hover:opacity-80 transition">
-            <img src="/logo.png" alt="Colla Logo" className="h-10 w-auto mr-3" />
-          </Link>
-          <h1 className="font-semibold text-lg">Colla Castellera Edinburgh</h1>
+      <body className={`${quicksand.className} min-h-screen bg-gray-50 text-gray-900 flex flex-col`}>
+        {/* 🔹 App Header */}
+        <header className="fixed top-0 left-0 w-full flex items-center justify-between bg-[#2f2484] text-white p-4 shadow-md z-50">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="hover:opacity-80 transition">
+              <img src="/logo.png" alt="Colla Logo" className="h-10 w-auto" />
+            </Link>
+            <h1 className="font-semibold text-lg">Colla Castellera Edinburgh</h1>
+          </div>
+
+          {/* 🔸 Profile/Login Menu (client side) */}
+          <HeaderClient />
         </header>
 
         {/* Floating admin button */}
         <AdminKeyButton />
 
-        {/* Page content */}
-        <main className="pt-20 px-4">{children}</main>
+        {/* 🔹 Main content area (below header) */}
+        <main className="pt-20 px-4 flex-1 overflow-y-auto">{children}</main>
       </body>
     </html>
   );

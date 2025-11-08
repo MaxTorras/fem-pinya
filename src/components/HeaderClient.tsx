@@ -10,6 +10,35 @@ export default function HeaderClient() {
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
 
+  const PinyaIcon = ({ size = 16 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    {/* Top person */}
+    <circle cx="12" cy="4" r="2" />
+    <line x1="12" y1="6" x2="12" y2="8" />
+
+    {/* Middle row */}
+    <circle cx="8" cy="10" r="2" />
+    <line x1="8" y1="12" x2="8" y2="14" />
+    <circle cx="16" cy="10" r="2" />
+    <line x1="16" y1="12" x2="16" y2="14" />
+
+    {/* Base row */}
+    <circle cx="6" cy="16" r="2" />
+    <circle cx="12" cy="16" r="2" />
+    <circle cx="18" cy="16" r="2" />
+  </svg>
+);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -48,12 +77,21 @@ export default function HeaderClient() {
           </button>
 
           {user.isAdmin && (
-            <button
-              onClick={() => router.push("/admin")}
-              className="w-full px-4 py-2 flex items-center gap-2 text-[#2f2484] dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-gray-700 transition"
-            >
-              <Shield size={16} /> Admin
-            </button>
+            <>
+              <button
+                onClick={() => router.push("/admin")}
+                className="w-full px-4 py-2 flex items-center gap-2 text-[#2f2484] dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-gray-700 transition"
+              >
+                <Shield size={16} /> Admin
+              </button>
+
+              <button
+                onClick={() => router.push("/pinya-planner")}
+                className="w-full px-4 py-2 flex items-center gap-2 text-[#2f2484] dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-gray-700 transition"
+              >
+                <PinyaIcon size={16} /> Pinya Planner
+              </button>
+            </>
           )}
 
           <button

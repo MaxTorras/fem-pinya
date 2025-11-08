@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { Quicksand } from "next/font/google";
+import { UserContext } from "@/context/UserContext";
 
 const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
@@ -19,14 +20,14 @@ type AttendanceResponse = { records: AttendanceRecord[] };
 type ErrorResponse = { error?: string };
 
 export default function CheckIn() {
-  const [nickname, setNickname] = useState("");
+  const { user } = useContext(UserContext);
+  const [nickname, setNickname] = useState(user?.nickname || "");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<Member[]>([]); // ✅ now store full member
   const router = useRouter();
 
-  // Fetch members for suggestions
   useEffect(() => {
     const fetchMembers = async () => {
       try {
@@ -46,14 +47,18 @@ export default function CheckIn() {
     const query = val.toLowerCase();
 
     setSuggestions(
-      members
-        .map((m) => m.nickname)
-        .filter((n) => n.toLowerCase().includes(query) && query.length > 0)
+      members.filter((m) => {
+        const fullName = `${m.name || ""} ${m.surname || ""}`.toLowerCase();
+        return (
+          m.nickname.toLowerCase().includes(query) ||
+          fullName.includes(query)
+        );
+      })
     );
   };
 
-  const handleSelectSuggestion = (name: string) => {
-    setNickname(name);
+  const handleSelectSuggestion = (member: Member) => {
+    setNickname(member.nickname);
     setSuggestions([]);
   };
 
@@ -69,7 +74,6 @@ export default function CheckIn() {
     const date = params.get("date") || new Date().toISOString().split("T")[0];
 
     try {
-      // 1️⃣ Fetch attendance for today
       const attendanceRes = await fetch(`/api/attendance?date=${date}`);
       const attendanceData = (await attendanceRes.json()) as AttendanceResponse;
 
@@ -83,7 +87,6 @@ export default function CheckIn() {
         return;
       }
 
-      // 2️⃣ Check if member exists
       const memberExists = members.some(
         (m) => m.nickname.toLowerCase() === nickname.toLowerCase()
       );
@@ -107,7 +110,6 @@ export default function CheckIn() {
         setMembers((prev) => [...prev, newMember]);
       }
 
-      // 3️⃣ Proceed to check in
       const checkInRes = await fetch("/api/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -116,7 +118,7 @@ export default function CheckIn() {
 
       if (checkInRes.ok) {
         setStatus("✅ Attendance recorded!");
-        setNickname("");
+        if (!user) setNickname("");
         setSuggestions([]);
       } else {
         const data = (await checkInRes.json()) as ErrorResponse;
@@ -136,49 +138,50 @@ export default function CheckIn() {
 
       <input
         type="text"
-        placeholder="Your nickname"
+        placeholder="Who are you?"
         value={nickname}
         onChange={handleChange}
         className="border-2 border-[#2f2484] rounded p-3 w-64 text-center focus:outline-none focus:ring-2 focus:ring-yellow-400"
+        disabled={!!user}
       />
 
-      {suggestions.length > 0 && (
+      {user && (
+        <p className="mt-1 text-gray-600">
+          Logged in as {user.nickname} ({user.name} {user.surname})
+        </p>
+      )}
+
+      {suggestions.length > 0 && !user && (
         <ul className="border border-[#2f2484] rounded w-64 max-h-32 overflow-auto bg-white z-10 mt-2 shadow-lg">
-          {suggestions.map((s) => (
+          {suggestions.map((m) => (
             <li
-              key={s}
+              key={m.nickname}
               className="p-2 cursor-pointer hover:bg-yellow-100"
-              onClick={() => handleSelectSuggestion(s)}
+              onClick={() => handleSelectSuggestion(m)}
             >
-              {s}
+              {m.nickname} {m.name || m.surname ? `(${m.name || ""} ${m.surname || ""})` : ""}
             </li>
           ))}
         </ul>
       )}
 
-      <div className="flex flex-col gap-4 mt-4 items-center w-full">
-        <div className="flex gap-4">
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="bg-[#2f2484] text-white px-6 py-2 rounded font-semibold hover:bg-yellow-400 hover:text-[#2f2484] transition w-32"
-          >
-            {loading ? "Submitting..." : "Check In"}
-          </button>
-          <button
-            onClick={() => router.push("/profile")}
-            className="bg-gray-200 text-gray-800 px-6 py-2 rounded font-semibold hover:bg-yellow-100 transition w-32"
-          >
-            Edit Profile
-          </button>
-        </div>
-        <button
-          onClick={() => router.push("/pinyes-overview")}
-          className="bg-green-600 text-white px-6 py-2 rounded font-semibold hover:bg-green-500 transition w-64"
-        >
-          View Pinyes Overview
-        </button>
-      </div>
+      <div className="flex flex-col gap-4 mt-6 items-center w-full">
+  <button
+    onClick={handleSubmit}
+    disabled={loading}
+    className="bg-[#2f2484] text-white px-8 py-3 rounded font-semibold hover:bg-yellow-400 hover:text-[#2f2484] transition w-64"
+  >
+    {loading ? "Submitting..." : "Check In"}
+  </button>
+
+  <button
+    onClick={() => router.push("/pinyes-overview")}
+    className="bg-green-600 text-white px-8 py-3 rounded font-semibold hover:bg-green-500 transition w-64"
+  >
+    View Pinyes Overview
+  </button>
+</div>
+
 
       {status && (
         <p

@@ -28,9 +28,9 @@ export default function HomePage() {
           </button>
         </Link>
 
-        <Link href="/pinya-planner">
+        <Link href="/main">
           <button className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-6 py-3 rounded-full shadow-md transition">
-            Go to Pinya Planner
+            Go to Events
           </button>
         </Link>
       </div>

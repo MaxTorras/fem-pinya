@@ -32,7 +32,7 @@ export default function LoginPage() {
       };
       setUser(userData); // ✅ update context immediately
       if (remember) localStorage.setItem("pinyaUser", JSON.stringify(userData));
-      router.push("/main");
+      router.push("/");
     } else {
       alert(data.error || "Login failed");
     }

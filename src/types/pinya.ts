@@ -7,6 +7,7 @@ export type Member = {
   surname?: string;
   position?: string | null; // e.g., "Baix", "Crossa", "Vent"
   position2?: string | null;  // secondary/fallback position
+  isAdmin?: boolean;
   missingPosition?: boolean; // true if position is empty
 };
 

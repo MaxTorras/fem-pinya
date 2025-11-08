@@ -2,7 +2,7 @@
 import { useContext, useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UserContext } from "@/context/UserContext";
-import { User, LogOut, Settings } from "lucide-react";
+import { User, LogOut, Settings, Shield } from "lucide-react";
 
 export default function HeaderClient() {
   const { user, setUser } = useContext(UserContext);
@@ -19,7 +19,6 @@ export default function HeaderClient() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // Logged out button
   if (!user)
     return (
       <button
@@ -30,7 +29,6 @@ export default function HeaderClient() {
       </button>
     );
 
-  // Logged in dropdown
   return (
     <div className="relative" ref={ref}>
       <button
@@ -41,27 +39,35 @@ export default function HeaderClient() {
       </button>
 
       {open && (
-  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded shadow-lg border z-50">
-    <button
-      onClick={() => router.push("/profile")}
-      className="w-full px-4 py-2 flex items-center gap-2 text-[#2f2484] dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-gray-700 transition"
-    >
-      <Settings size={16} /> Edit Profile
-    </button>
+        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded shadow-lg border z-50">
+          <button
+            onClick={() => router.push("/profile")}
+            className="w-full px-4 py-2 flex items-center gap-2 text-[#2f2484] dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-gray-700 transition"
+          >
+            <Settings size={16} /> Edit Profile
+          </button>
 
-    <button
-      onClick={() => {
-        setUser(null);
-        localStorage.removeItem("pinyaUser");
-        router.push("/login");
-      }}
-      className="w-full px-4 py-2 flex items-center gap-2 text-[#2f2484] dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-gray-700 transition"
-    >
-      <LogOut size={16} /> Log Out
-    </button>
-  </div>
-)}
+          {user.isAdmin && (
+            <button
+              onClick={() => router.push("/admin")}
+              className="w-full px-4 py-2 flex items-center gap-2 text-[#2f2484] dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-gray-700 transition"
+            >
+              <Shield size={16} /> Admin
+            </button>
+          )}
 
+          <button
+            onClick={() => {
+              setUser(null);
+              localStorage.removeItem("pinyaUser");
+              router.push("/login");
+            }}
+            className="w-full px-4 py-2 flex items-center gap-2 text-[#2f2484] dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-gray-700 transition"
+          >
+            <LogOut size={16} /> Log Out
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     // 2️⃣ Fetch Members sheet
     const spreadsheetId = process.env.GOOGLE_SHEET_ID; // your Attendance spreadsheet ID
-    const range = "members!A:F"; // nickname | passwordHash | name | surname | position | position2
+    const range = "members!A:G"; // nickname | passwordHash | name | surname | position | position2 | isAdmin
 
     const response = await sheets.spreadsheets.values.get({ spreadsheetId, range });
     const rows = response.data.values || [];
@@ -53,6 +53,7 @@ export async function POST(request: Request) {
       surname: user[3],
       position: user[4],
       position2: user[5],
+      isAdmin: user[6]?.toLowerCase() === "yes", // boolean now
     });
   } catch (error) {
     console.error("Login failed:", error);

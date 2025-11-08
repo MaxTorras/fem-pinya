@@ -28,11 +28,10 @@ export default function LoginPage() {
         surname: data.surname,
         position: data.position,
         position2: data.position2,
+        isAdmin: data.isAdmin, // ✅ already boolean
       };
       setUser(userData); // ✅ update context immediately
-      if (remember) {
-        localStorage.setItem("pinyaUser", JSON.stringify(userData));
-      }
+      if (remember) localStorage.setItem("pinyaUser", JSON.stringify(userData));
       router.push("/main");
     } else {
       alert(data.error || "Login failed");

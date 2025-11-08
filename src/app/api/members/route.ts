@@ -16,7 +16,7 @@ export async function GET() {
   try {
     const sheets = await getSheets();
     const sheetId = process.env.GOOGLE_SHEET_ID!;
-    const range = "Members!A2:F";
+    const range = "Members!A2:G";
 
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
@@ -25,13 +25,14 @@ export async function GET() {
 
     const rows = result.data.values || [];
     const members = rows.map(
-  ([nickname, passwordHash, name, surname, position, position2]) => ({
+  ([nickname, passwordHash, name, surname, position, position2, isAdmin]) => ({
     nickname,
     passwordHash,
     name,
     surname,
     position: position || null, // keep null if empty
     position2: position2 || null,    // secondary/fallback position
+    isAdmin: isAdmin?.toLowerCase() === "yes",
     missingPosition: !position, // true if empty
   })
 );
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
     // Append to Members sheet: fill A (nickname), B (passwordHash), leave C/D empty, E (position)
    await sheets.spreadsheets.values.append({
   spreadsheetId: sheetId,
-  range: "Members!A2:F",
+  range: "Members!A2:G",
   valueInputOption: "RAW",
   requestBody: {
     values: [[nickname, passwordHash, "", "", position, position2]],

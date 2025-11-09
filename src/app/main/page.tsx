@@ -20,6 +20,7 @@ type Event = {
   date: string;
   folder: "Performances" | "Rehearsals" | "Socials";
   time: string;
+  google_form?: string; // ✅ new optional field
 };
 
 type Vote = "coming" | "late" | "not coming";
@@ -47,23 +48,22 @@ export default function MainPage() {
 
   // Fetch votes for logged-in user
   const loadVotes = async () => {
-  if (!user) return;
+    if (!user) return;
 
-  const { data, error } = await supabase
-    .from("votes")
-    .select("*")
-    .eq("nickname", user.nickname);
+    const { data, error } = await supabase
+      .from("votes")
+      .select("*")
+      .eq("nickname", user.nickname);
 
-  if (error) console.error("Supabase votes error:", error);
-  else {
-    const newVotes: Record<string, Vote> = {};
-    (data || []).forEach((v: any) => {
-      if (v.eventId && v.vote) newVotes[v.eventId] = v.vote;
-    });
-    setVotes(newVotes);
-  }
-};
-
+    if (error) console.error("Supabase votes error:", error);
+    else {
+      const newVotes: Record<string, Vote> = {};
+      (data || []).forEach((v: any) => {
+        if (v.eventId && v.vote) newVotes[v.eventId] = v.vote;
+      });
+      setVotes(newVotes);
+    }
+  };
 
   useEffect(() => {
     loadEvents();
@@ -95,21 +95,20 @@ export default function MainPage() {
   const goToToday = () => setSelectedDate(dayjs());
 
   const handleVote = async (eventId: string, voteValue: Vote) => {
-  if (!user) return;
+    if (!user) return;
 
-  // Optimistic update
-  setVotes(prev => ({ ...prev, [eventId]: voteValue }));
+    // Optimistic update
+    setVotes((prev) => ({ ...prev, [eventId]: voteValue }));
 
-  const { error } = await supabase
-    .from("votes")
-    .upsert(
-      [{ "eventId": eventId, nickname: user.nickname, vote: voteValue }],
-      { onConflict: '"eventId","nickname"' }
-    );
+    const { error } = await supabase
+      .from("votes")
+      .upsert(
+        [{ eventId, nickname: user.nickname, vote: voteValue }],
+        { onConflict: '"eventId","nickname"' }
+      );
 
-  if (error) console.error("Error saving vote:", error);
-};
-
+    if (error) console.error("Error saving vote:", error);
+  };
 
   return (
     <main className="p-6 max-w-2xl mx-auto space-y-6">
@@ -174,16 +173,19 @@ export default function MainPage() {
                           : isToday
                           ? "border border-[#FFD700] text-[#2f2484]"
                           : ""
-                      } ${!isCurrentMonth ? "text-gray-400" : "text-gray-800"} hover:bg-yellow-100`}
+                      } ${
+                        !isCurrentMonth ? "text-gray-400" : "text-gray-800"
+                      } hover:bg-yellow-100`}
                     >
                       <span>{day.date()}</span>
                       <div className="flex gap-0.5 mt-0.5">
                         {eventsOnDay.slice(0, 3).map((ev) => {
-                          const color = ev.folder === "Performances"
-                            ? "#2f2484"
-                            : ev.folder === "Rehearsals"
-                            ? "#FFD700"
-                            : "#4CAF50";
+                          const color =
+                            ev.folder === "Performances"
+                              ? "#2f2484"
+                              : ev.folder === "Rehearsals"
+                              ? "#FFD700"
+                              : "#4CAF50";
                           return (
                             <span
                               key={ev.id}
@@ -223,11 +225,12 @@ export default function MainPage() {
                 <span>{day.format("D")}</span>
                 <div className="flex gap-0.5 mt-0.5">
                   {eventsOnDay.slice(0, 3).map((ev) => {
-                    const color = ev.folder === "Performances"
-                      ? "#2f2484"
-                      : ev.folder === "Rehearsals"
-                      ? "#FFD700"
-                      : "#4CAF50";
+                    const color =
+                      ev.folder === "Performances"
+                        ? "#2f2484"
+                        : ev.folder === "Rehearsals"
+                        ? "#FFD700"
+                        : "#4CAF50";
                     return (
                       <span
                         key={ev.id}
@@ -263,6 +266,18 @@ export default function MainPage() {
                 <p className="text-sm text-gray-600">
                   {dayjs(event.date).format("dddd, MMM D")} – {event.time}
                 </p>
+
+                {/* ✅ Show Google Form link if available */}
+                {event.google_form && (
+                  <a
+                    href={event.google_form}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 underline mt-1 inline-block"
+                  >
+                    Open Form
+                  </a>
+                )}
               </div>
 
               {/* Voting buttons */}

@@ -10,6 +10,7 @@ type Event = {
   date: string;
   time: string;
   folder: string;
+  google_form?: string; // ✅ new optional field
 };
 
 export default function EventsTab() {
@@ -20,9 +21,11 @@ export default function EventsTab() {
   const [time, setTime] = useState("");
   const [tbc, setTbc] = useState(false);
   const [folder, setFolder] = useState("Performances");
+  const [googleForm, setGoogleForm] = useState(""); // ✅ new state
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // Load events
   const loadEvents = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -40,6 +43,7 @@ export default function EventsTab() {
     loadEvents();
   }, []);
 
+  // Save or update event
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -49,6 +53,7 @@ export default function EventsTab() {
       date,
       time: tbc ? "TBC" : time,
       folder,
+      google_form: googleForm || null, // ✅ include google form
     };
 
     let result;
@@ -64,6 +69,7 @@ export default function EventsTab() {
       setTime("");
       setTbc(false);
       setFolder("Performances");
+      setGoogleForm(""); // ✅ reset field
       setEditingId(null);
       await loadEvents();
     }
@@ -71,6 +77,7 @@ export default function EventsTab() {
     setSaving(false);
   };
 
+  // Delete event
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this event?")) return;
     const { error } = await supabase.from("events").delete().eq("id", id);
@@ -78,6 +85,7 @@ export default function EventsTab() {
     else loadEvents();
   };
 
+  // Edit event
   const handleEdit = (ev: Event) => {
     setEditingId(ev.id);
     setTitle(ev.title);
@@ -85,6 +93,7 @@ export default function EventsTab() {
     setTbc(ev.time === "TBC");
     setTime(ev.time === "TBC" ? "" : ev.time);
     setFolder(ev.folder);
+    setGoogleForm(ev.google_form || ""); // ✅ load saved link
   };
 
   return (
@@ -171,6 +180,20 @@ export default function EventsTab() {
             </select>
           </div>
 
+          {/* ✅ Google Form (optional) */}
+          <div>
+            <label className="block text-sm font-semibold text-[#2f2484] mb-1">
+              Google Form Link (optional)
+            </label>
+            <input
+              type="url"
+              value={googleForm}
+              onChange={(e) => setGoogleForm(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-[#FFD700] focus:outline-none"
+              placeholder="https://forms.gle/..."
+            />
+          </div>
+
           <button
             type="submit"
             disabled={saving}
@@ -200,6 +223,16 @@ export default function EventsTab() {
                   <p className="text-sm text-gray-600">
                     {dayjs(ev.date).format("DD MMM")} — {ev.time} ({ev.folder})
                   </p>
+                  {ev.google_form && (
+                    <a
+                      href={ev.google_form}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 text-sm underline"
+                    >
+                      Open Form
+                    </a>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button

@@ -10,11 +10,11 @@ type VoteRecord = {
   id: string;
   nickname: string;
   eventId: string;
-  vote: "coming" | "late" | "not_coming";
+  vote: "coming" | "late" | "not coming";
   created_at: string;
   comment?: string;
 };
-type VoteStatus = "coming" | "late" | "not_coming";
+type VoteStatus = "coming" | "late" | "not coming" | "no answer";
 
 export default function VotesTab({ members }: { members: Member[] }) {
   const [events, setEvents] = useState<Event[]>([]);
@@ -51,31 +51,42 @@ export default function VotesTab({ members }: { members: Member[] }) {
 
   // Merge votes with members
   const membersWithStatus = members.map((m) => {
-    const record = recordsForEvent.find(
-      (r) => r.nickname.toLowerCase() === m.nickname.toLowerCase()
-    );
-    return {
-      ...m,
-      status: record?.vote || "not_coming",
-      comment: record?.comment || "",
-    };
-  });
-
-  // Group members by status safely
-  const groupedByStatus: Record<VoteStatus, typeof membersWithStatus> = {
-    coming: [],
-    late: [],
-    not_coming: [],
+  const record = recordsForEvent.find(
+    (r) => r.nickname.toLowerCase() === m.nickname.toLowerCase()
+  );
+  const status: VoteStatus = record
+    ? record.vote
+    : "no answer"; // ✅ default to "no answer" if no vote
+  return {
+    ...m,
+    status,
+    comment: record?.comment || "",
   };
+});
+
+
+  const groupedByStatus: Record<VoteStatus, typeof membersWithStatus> = {
+  coming: [],
+  late: [],
+  "not coming": [],
+  "no answer": [], // ✅ new group
+};
+
+
   membersWithStatus.forEach((m) => {
     groupedByStatus[m.status].push(m);
   });
 
-  const statusLabels: Record<VoteStatus, { label: string; Icon: React.FC<{ size?: number }> }> = {
-    coming: { label: "Coming", Icon: CheckCircle },
-    late: { label: "Late", Icon: Clock },
-    not_coming: { label: "Not Coming", Icon: XCircle },
-  };
+ const statusLabels: Record<
+  VoteStatus,
+  { label: string; Icon: React.FC<{ size?: number }> }
+> = {
+  coming: { label: "Coming", Icon: CheckCircle },
+  late: { label: "Late", Icon: Clock },
+  "not coming": { label: "Not Coming", Icon: XCircle },
+  "no answer": { label: "No Answer", Icon: Clock }, // ✅ pick an icon or use another
+};
+
 
   return (
     <div className="space-y-4">

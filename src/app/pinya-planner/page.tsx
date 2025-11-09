@@ -27,6 +27,8 @@ import { Member, PinyaLayout } from "@/types/pinya";
 type AttendanceRecord = { nickname: string };
 const nodeTypes = { pinya: PinyaNode };
 
+
+
 const quickRoles = [
   "Vent","Mans","Baix","Contrafort","Agulla","Crossa","Lateral",
   "Diagonal","Tap","Tronc","Dosos","Acotxadora","Enxaneta",
@@ -37,18 +39,27 @@ export default function PinyaPlannerPage() {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [members, setMembers] = useState<Member[]>([]);
   const [attendance, setAttendance] = useState<Member[]>([]);
-  const [showAllMembers, setShowAllMembers] = useState(false); // toggle all vs checked-in
+  const [showAllMembers, setShowAllMembers] = useState(false);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [savedLayouts, setSavedLayouts] = useState<PinyaLayout[]>([]);
   const [layoutName, setLayoutName] = useState("");
   const [folderName, setFolderName] = useState("");
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
-  const [leftDrawerOpen, setLeftDrawerOpen] = useState(false); // for mobile bottom drawer
-  const [addRoleOpen, setAddRoleOpen] = useState(true); // collapsible Add Role panel
+  const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
+  const [addRoleOpen, setAddRoleOpen] = useState(true);
   const [loadingLayouts, setLoadingLayouts] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
   const [currentLayout, setCurrentLayout] = useState<PinyaLayout | null>(null);
+  const [openSession, setOpenSession] = useState(true);
+  const [openLayouts, setOpenLayouts] = useState(true);
+  const [openMembers, setOpenMembers] = useState(true);
 
+  // --- RSVP-related state ---
+  const [votes, setVotes] = useState<{ nickname: string; eventId: string; vote: string }[]>([]);
+  const [rsvpMembers, setRsvpMembers] = useState<Member[]>([]);
+  type MemberSource = "all" | "checkedin" | "rsvp";
+  const [memberSource, setMemberSource] = useState<MemberSource>("checkedin");
+  const [rsvpDate, setRsvpDate] = useState<string>(new Date().toISOString().split("T")[0]);
 
 
   // --- Fetch layouts ---
@@ -67,7 +78,7 @@ export default function PinyaPlannerPage() {
 
   useEffect(() => { fetchLayouts(); }, []);
 
-  // --- Load members (all) ---
+  // --- Load members ---
   useEffect(() => {
     let mounted = true;
     fetch("/api/members")
@@ -80,10 +91,10 @@ export default function PinyaPlannerPage() {
     return () => { mounted = false; };
   }, []);
 
-  // --- Load attendance for selected date ---
+  // --- Load attendance ---
   useEffect(() => {
     if (!selectedDate || members.length === 0) {
-      setAttendance([]); // clear while we wait
+      setAttendance([]);
       return;
     }
     let mounted = true;
@@ -103,33 +114,78 @@ export default function PinyaPlannerPage() {
     return () => { mounted = false; };
   }, [selectedDate, members]);
 
-  // --- Helpers: assign/remove/rotate nodes ---
-  const assignMemberToNode = (nodeId: string, member: Member) => {
-  setNodes(prev =>
-    prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member } } : n)
-  );
+  // --- Load all votes ---
+  useEffect(() => {
+    const loadVotes = async () => {
+      try {
+        const res = await fetch("/api/votes/attendance");
+        const json = await res.json();
+        setVotes(json.records || []);
+      } catch (err) {
+        console.error("Failed to load votes:", err);
+      }
+    };
+    loadVotes();
+  }, []);
 
-  // Remove from left panel only if using checked-in mode
-  if (!showAllMembers) {
-    setAttendance(prev =>
-      prev.filter(m => m.nickname !== member.nickname)
-    );
+  // --- Compute RSVP “coming” members ---
+useEffect(() => {
+  if (!rsvpDate || members.length === 0 || votes.length === 0) {
+    setRsvpMembers([]);
+    return;
   }
-};
 
-const removeMemberFromNode = (nodeId: string) => {
-  const node = nodes.find(n => n.id === nodeId);
-  if (!node?.data?.member) return;
+  const fetchRehearsalEvent = async () => {
+    try {
+      const res = await fetch("/api/events");
+      const allEvents = await res.json();
+      const rehearsal = allEvents.find(
+        (e: any) =>
+          e.folder === "Rehearsals" &&
+          e.date?.slice(0, 10) === rsvpDate
+      );
+      if (!rehearsal) {
+        setRsvpMembers([]);
+        return;
+      }
 
-  setNodes(prev =>
-    prev.map(n =>
-      n.id === nodeId ? { ...n, data: { ...n.data, member: undefined } } : n
-    )
-  );
+      const coming = votes
+        .filter(v => v.eventId === rehearsal.id && v.vote === "coming")
+        .map(v => members.find(m => m.nickname === v.nickname))
+        .filter((m): m is Member => !!m);
 
-  // The member is still checked-in, so will appear in left panel automatically
-};
+      setRsvpMembers(coming);
+    } catch (err) {
+      console.error("Failed to find rehearsal event:", err);
+      setRsvpMembers([]);
+    }
+  };
 
+  fetchRehearsalEvent();
+}, [rsvpDate, members, votes]);
+
+
+  // --- Assign / remove / rotate nodes ---
+  const assignMemberToNode = (nodeId: string, member: Member) => {
+    setNodes(prev =>
+      prev.map(n => n.id === nodeId ? { ...n, data: { ...n.data, member } } : n)
+    );
+
+    if (!showAllMembers) {
+      setAttendance(prev => prev.filter(m => m.nickname !== member.nickname));
+    }
+  };
+
+  const removeMemberFromNode = (nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node?.data?.member) return;
+
+    setNodes(prev =>
+      prev.map(n =>
+        n.id === nodeId ? { ...n, data: { ...n.data, member: undefined } } : n
+      )
+    );
+  };
 
   const rotateNode = (nodeId: string) => {
     setNodes(prev =>
@@ -141,144 +197,138 @@ const removeMemberFromNode = (nodeId: string) => {
   };
 
   const handleAutoAssign = () => {
-  const available = [...listSource]; // use currently visible members
-  const updated = nodes.map(n => {
-    if (n.data?.member) return n; // already assigned
+    const available = [...listSource];
+    const updated = nodes.map(n => {
+      if (n.data?.member) return n;
 
-    // Try primary position first
-    let matchIndex = available.findIndex(
-      m => m.position?.toLowerCase() === n.data.label?.toLowerCase()
-    );
+      let matchIndex = available.findIndex(
+        m => m.position?.toLowerCase() === n.data.label?.toLowerCase()
+      );
+      if (matchIndex === -1) {
+        matchIndex = available.findIndex(
+          m => m.position2?.toLowerCase() === n.data.label?.toLowerCase()
+        );
+      }
 
-    // If no primary match, try secondary position
-    if (matchIndex === -1) {
-      matchIndex = available.findIndex(
-        m => m.position2?.toLowerCase() === n.data.label?.toLowerCase()
+      if (matchIndex !== -1) {
+        const matched = available[matchIndex];
+        available.splice(matchIndex, 1);
+        return { ...n, data: { ...n.data, member: matched } };
+      }
+
+      return n;
+    });
+
+    setNodes(updated);
+
+    if (!showAllMembers) {
+      setAttendance(prev =>
+        prev.filter(m => {
+          const isAssigned = updated.some(n => n.data?.member?.nickname === m.nickname);
+          const isAssignedToBaix = updated.some(
+            n => n.data?.label === "Baix" && n.data?.member?.nickname === m.nickname
+          );
+          return !isAssigned || isAssignedToBaix;
+        })
       );
     }
+  };
 
-    if (matchIndex !== -1) {
-      const matched = available[matchIndex];
-      available.splice(matchIndex, 1); // remove from available
-      return { ...n, data: { ...n.data, member: matched } };
-    }
-
-    return n;
-  });
-
-  setNodes(updated);
-
-  // Remove assigned from the visible list only if using checked-in mode
-  if (!showAllMembers) {
-  setAttendance(prev =>
-    prev.filter(m => {
-      const isAssigned = updated.some(n => n.data?.member?.nickname === m.nickname);
-      const isAssignedToBaix = updated.some(
-        n => n.data?.label === "Baix" && n.data?.member?.nickname === m.nickname
-      );
-      return !isAssigned || isAssignedToBaix;
-    })
-  );
-}
-
-};
-
-
-
+  // --- Save layout ---
   const saveLayout = async () => {
-  if (!layoutName.trim()) return alert("Please name your layout!");
+    if (!layoutName.trim()) return alert("Please name your layout!");
 
-  const layout: PinyaLayout = {
-    id: Date.now().toString(),
-    name: layoutName,
-    folder: folderName || undefined,
-    castellType: "4d7",
-    positions: nodes.map(n => ({
-      id: n.id,
-      label: n.data?.label ?? "",
-      x: n.position?.x ?? 0,
-      y: n.position?.y ?? 0,
-      member: n.data?.member,
-      rotation: n.data?.rotation ?? 0,
-    })),
+    const layout: PinyaLayout = {
+      id: Date.now().toString(),
+      name: layoutName,
+      folder: folderName || undefined,
+      castellType: "4d7",
+      positions: nodes.map(n => ({
+        id: n.id,
+        label: n.data?.label ?? "",
+        x: n.position?.x ?? 0,
+        y: n.position?.y ?? 0,
+        member: n.data?.member,
+        rotation: n.data?.rotation ?? 0,
+      })),
+    };
+
+    try {
+      const res = await fetch("/api/layouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(layout),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert(`✅ Layout '${layoutName}' ${data.message}`);
+        setLayoutName("");
+        setFolderName("");
+        fetchLayouts();
+      } else {
+        alert("❌ Failed to save layout");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("❌ Error saving layout");
+    }
   };
 
-  try {
-    const res = await fetch("/api/layouts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(layout),
-    });
-    const data = await res.json();
-
-    if (data.success) {
-      alert(`✅ Layout '${layoutName}' ${data.message}`);
-      setLayoutName("");
-      setFolderName("");
-      fetchLayouts();
-    } else {
-      alert("❌ Failed to save layout");
-    }
-  } catch (err) {
-    console.error(err);
-    alert("❌ Error saving layout");
-  }
-};
-
-
-  // --- Load layout ---
+  // --- Load / update / delete layout ---
   const loadLayout = (layout: PinyaLayout) => {
-  if (!layout.positions) return;
-  const loadedNodes: Node[] = layout.positions.map(p => ({
-  id: p.id,
-  type: "pinya",
-  position: { x: p.x, y: p.y },
-  data: {
-    label: p.label,
-    member: p.member,
-    rotation: p.rotation ?? 0,
-    showRotateButton: true, // ✅ add this
-  },
-}));
+    if (!layout.positions) return;
+    const loadedNodes: Node[] = layout.positions.map(p => ({
+      id: p.id,
+      type: "pinya",
+      position: { x: p.x, y: p.y },
+      data: {
+        label: p.label,
+        member: p.member,
+        rotation: p.rotation ?? 0,
+        showRotateButton: true,
+      },
+    }));
 
-  setNodes(loadedNodes);
-  setCurrentLayout(layout); // ✅ store the currently loaded layout
-  if (isMobile) setLeftDrawerOpen(false);
-};
-const updateLayout = async () => {
-  if (!currentLayout) return alert("No layout loaded!");
-
-  const updatedLayout: PinyaLayout = {
-    ...currentLayout, // preserve name, folder, castellType
-    positions: nodes.map(n => ({
-      id: n.id,
-      label: n.data?.label ?? "",
-      x: n.position?.x ?? 0,
-      y: n.position?.y ?? 0,
-      member: n.data?.member,
-      rotation: n.data?.rotation ?? 0,
-    })),
+    setNodes(loadedNodes);
+    setCurrentLayout(layout);
+    if (isMobile) setLeftDrawerOpen(false);
   };
 
-  try {
-    const res = await fetch("/api/layouts", {
-      method: "PUT", // use PUT to update
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedLayout),
-    });
-    const data = await res.json();
-    if (data.success) {
-      alert(`✅ Layout '${currentLayout.name}' updated!`);
-      fetchLayouts(); // refresh the saved layouts
-    } else {
-      alert("❌ Failed to update layout");
+  const updateLayout = async () => {
+    if (!currentLayout) return alert("No layout loaded!");
+
+    const updatedLayout: PinyaLayout = {
+      ...currentLayout,
+      positions: nodes.map(n => ({
+        id: n.id,
+        label: n.data?.label ?? "",
+        x: n.position?.x ?? 0,
+        y: n.position?.y ?? 0,
+        member: n.data?.member,
+        rotation: n.data?.rotation ?? 0,
+      })),
+    };
+
+    try {
+      const res = await fetch("/api/layouts", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedLayout),
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`✅ Layout '${currentLayout.name}' updated!`);
+        fetchLayouts();
+      } else {
+        alert("❌ Failed to update layout");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("❌ Error updating layout");
     }
-  } catch (err) {
-    console.error(err);
-    alert("❌ Error updating layout");
-  }
-};
-  // --- Delete layout ---
+  };
+
   const deleteLayout = async (id: string) => {
     if (!confirm("Delete this layout?")) return;
     try {
@@ -300,93 +350,84 @@ const updateLayout = async () => {
   const addRole = (role: string) => {
     const id = `${role.toLowerCase()}_${Date.now()}`;
     setNodes(prev => [
-  {
-    id,
-    type: "pinya",
-    position: { x: 400, y: Math.max(50, 100 - prev.length * 50) },
-    data: { label: role, rotation: 0, showRotateButton: true }, // ✅ add this
-  },
-  ...prev,
-]);
-
+      {
+        id,
+        type: "pinya",
+        position: { x: 400, y: Math.max(50, 100 - prev.length * 50) },
+        data: { label: role, rotation: 0, showRotateButton: true },
+      },
+      ...prev,
+    ]);
   };
 
-  // --- Node handlers & mapping handlers into node data ---
+  // --- ReactFlow handlers ---
   const onNodesChange: OnNodesChange = (changes: NodeChange[]) =>
     setNodes(nds => applyNodeChanges(changes, nds));
 
   const nodesWithHandlers = useMemo(() => {
-  return nodes.map(n => {
-    const member = n.data?.member;
-    const isCheckedIn = !!member && attendance.some(a => a.nickname === member.nickname);
+    return nodes.map(n => {
+      const member = n.data?.member;
+      const isCheckedIn = !!member && attendance.some(a => a.nickname === member.nickname);
+      const isRsvpComing = !!member && rsvpMembers.some(a => a.nickname === member.nickname);
 
-    return {
-      ...n,
-      key: n.id,
-      data: {
-        ...(n.data ?? {}),
-        onAssign: (m: Member) => assignMemberToNode(n.id, m),
-        onRemove: () => removeMemberFromNode(n.id),
-        onRotate: () => rotateNode(n.id),
-        checkedIn: isCheckedIn, // ✅ passes to PinyaNode
-        showRotateButton: n.data?.showRotateButton ?? true, // ensure it’s there
-      },
-    };
+      return {
+        ...n,
+        key: n.id,
+        data: {
+          ...(n.data ?? {}),
+          onAssign: (m: Member) => assignMemberToNode(n.id, m),
+          onRemove: () => removeMemberFromNode(n.id),
+          onRotate: () => rotateNode(n.id),
+          checkedIn: isCheckedIn,
+          rsvpComing: isRsvpComing,
+          showRotateButton: n.data?.showRotateButton ?? true,
+        },
+      };
+    });
+  }, [nodes, attendance, rsvpMembers]);
+
+  // --- Member list source ---
+  const listSource =
+    memberSource === "all"
+      ? members
+      : memberSource === "checkedin"
+      ? attendance
+      : rsvpMembers;
+
+  const assignedNicknames = nodes
+    .map(n => n.data?.member?.nickname)
+    .filter(Boolean) as string[];
+
+  const visibleMembers = listSource.filter(m => {
+    const isAssigned = assignedNicknames.includes(m.nickname);
+    const isAssignedToBaix = nodes.some(
+      n => n.data?.label?.toLowerCase().includes("baix") &&
+           n.data?.member?.nickname === m.nickname
+    );
+    return !isAssigned || isAssignedToBaix;
   });
-}, [nodes, attendance]); // 👈 ADD attendance as a dependency
 
+  const filteredMembers = visibleMembers.filter(m => {
+    const search = memberSearch.toLowerCase();
+    return (
+      m.nickname.toLowerCase().includes(search) ||
+      (m.name?.toLowerCase().includes(search) ?? false) ||
+      (m.surname?.toLowerCase().includes(search) ?? false)
+    );
+  });
 
-  // --- Organize members for the left panel ---
-// listSource = members (all) or attendance (checked-in)
-// Compute left panel members
-const listSource = showAllMembers ? members : attendance;
+  const positionsMap: Record<string, Member[]> = {};
+  filteredMembers.forEach(m => {
+    const key = m.position ?? "No role";
+    if (!positionsMap[key]) positionsMap[key] = [];
+    positionsMap[key].push(m);
+  });
 
-
-// Compute which members are already assigned to nodes
-const assignedNicknames = nodes
-  .map(n => n.data?.member?.nickname)
-  .filter(Boolean) as string[];
-
-// Only show members who are not assigned to any node, except Baix roles
-// Only show members who are not assigned to any node, except Baix roles
-const visibleMembers = listSource.filter(m => {
-  const isAssigned = assignedNicknames.includes(m.nickname);
-
-  // Special case: if someone is assigned to Baix, still show them
-  const isAssignedToBaix = nodes.some(
-    n => n.data?.label?.toLowerCase().includes("baix") &&
-         n.data?.member?.nickname === m.nickname
-  );
-
-  return !isAssigned || isAssignedToBaix;
-});
-
-// Apply search filter on top
-const filteredMembers = visibleMembers.filter(m => {
-  const search = memberSearch.toLowerCase();
-  return (
-    m.nickname.toLowerCase().includes(search) ||
-    (m.name?.toLowerCase().includes(search) ?? false) ||
-    (m.surname?.toLowerCase().includes(search) ?? false)
-  );
-});
-
-// Map positions for left panel
-const positionsMap: Record<string, Member[]> = {};
-filteredMembers.forEach(m => {
-  const key = m.position ?? "No role";
-  if (!positionsMap[key]) positionsMap[key] = [];
-  positionsMap[key].push(m);
-});
-
-
-  // --- Folder filtering helpers ---
   const folders = Array.from(new Set(savedLayouts.map(l => l.folder).filter(Boolean))) as string[];
   const filteredLayouts = selectedFolder
     ? savedLayouts.filter(l => l.folder === selectedFolder)
     : savedLayouts;
 
-  // --- Export ReactFlow canvas as image ---
   const exportLayoutAsImage = async () => {
     const canvas = document.querySelector<HTMLDivElement>(".reactflow-wrapper");
     if (!canvas) return alert("Canvas not found!");
@@ -401,133 +442,214 @@ filteredMembers.forEach(m => {
 
   const todayIso = new Date().toISOString().split("T")[0];
 
-  // --- Layout for desktop / mobile ---
-  // On mobile we show a small top bar with buttons: open drawer, toggle showAllMembers, collapse addRole (floating)
+  // --- Layout ---
   return (
     <DndProvider backend={isMobile ? TouchBackend : HTML5Backend}>
       <div className="flex h-screen w-full relative bg-white">
-        {/* --- DESKTOP LEFT PANEL (hidden on small screens) --- */}
-        <div className="hidden md:flex md:w-64 border-r flex-col">
-          <div className="p-3 border-b sticky top-0 bg-white z-10">
-            <div className="mb-2">
-              <label className="text-xs font-semibold mb-1 block">Select date:</label>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={e => setSelectedDate(e.target.value)}
-                className="border rounded p-1 w-full text-xs"
-                max={todayIso}
-              />
-            </div>
+{/* --- LEFT PANEL (desktop, collapsible) --- */}
+<div className="hidden md:flex md:w-72 border-r flex-col bg-gray-50">
+  <div className="flex-1 flex flex-col overflow-y-auto">
 
-            <div className="mb-2">
-              <input
-                type="text"
-                placeholder="Layout name"
-                value={layoutName}
-                onChange={e => setLayoutName(e.target.value)}
-                className="border rounded p-1 w-full text-xs mb-1"
-              />
-              <input
-                type="text"
-                placeholder="Folder name (optional)"
-                value={folderName}
-                onChange={e => setFolderName(e.target.value)}
-                className="border rounded p-1 w-full text-xs mb-1"
-              />
-              <button
-                onClick={saveLayout}
-                className="bg-blue-600 text-white px-2 py-1 rounded w-full text-xs mb-2"
-              >
-                💾 Save Layout
-              </button>
-              {currentLayout && (
-  <button
-    onClick={updateLayout}
-    className="bg-yellow-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-yellow-700"
-  >
-    🔄 Update Layout
-  </button>
-)}
-              <button
-                onClick={handleAutoAssign}
-                className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700"
-              >
-                ⚡ Auto Assign
-              </button>
+    {/* SECTION 1: Session Settings */}
+    <div className="border-b bg-white">
+      <button
+        onClick={() => setOpenSession(s => !s)}
+        className="w-full flex justify-between items-center px-4 py-2 text-sm font-semibold text-[#2f2484] hover:bg-yellow-50"
+      >
+        <span>📅 Session Settings</span>
+        <span>{openSession ? "−" : "+"}</span>
+      </button>
 
-
-              <div className="flex gap-2 mb-2">
-                <select
-                  value={selectedFolder}
-                  onChange={e => setSelectedFolder(e.target.value || undefined)}
-                  className="border rounded p-1 text-xs flex-1"
-                >
-                  <option value="">All folders</option>
-                  {folders.map(f => <option key={f} value={f}>{f}</option>)}
-                </select>
-                <button
-                  onClick={() => { setShowAllMembers(prev => !prev); }}
-                  className="border rounded p-1 text-xs"
-                  title="Toggle show all members / checked-in"
-                >
-                  {showAllMembers ? "👥 All" : "✅ Checked-in"}
-                </button>
-              </div>
-
-              <div className="max-h-48 overflow-y-auto">
-                {filteredLayouts.map(layout => (
-                  <div key={layout.id} className="flex justify-between items-center mb-1 border px-2 py-1 rounded hover:bg-gray-100">
-                    <button onClick={() => loadLayout(layout)} className="text-left text-xs flex-1">{layout.name}</button>
-                    <button onClick={() => deleteLayout(layout.id)} className="text-red-500 font-bold text-xs ml-2 hover:text-red-700">×</button>
-                  </div>
-                ))}
-                {loadingLayouts && <div className="text-xs text-gray-500 mt-2">Loading...</div>}
-              </div>
-            </div>
+      {openSession && (
+        <div className="px-4 pb-4 space-y-3">
+          <div>
+            <label className="text-xs font-semibold block text-gray-600 mb-1">Attendance date:</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+              className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
+              max={todayIso}
+            />
           </div>
 
-         {/* Members list (desktop) */}
-<div className="flex-1 overflow-y-auto p-3 bg-gray-50">
-  {/* Search input */}
-  <div className="mb-2">
-    <input
-      type="text"
-      placeholder="Search members..."
-      value={memberSearch}
-      onChange={e => setMemberSearch(e.target.value)}
-      className="border rounded p-1 text-xs w-full"
-    />
-  </div>
+          {memberSource === "rsvp" && (
+            <div>
+              <label className="text-xs font-semibold block text-gray-600 mb-1">RSVP date:</label>
+              <input
+                type="date"
+                value={rsvpDate}
+                onChange={(e) => setRsvpDate(e.target.value)}
+                className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
+              />
+            </div>
+          )}
 
-  {Object.keys(positionsMap).length === 0 ? (
-    <div className="text-xs text-gray-500">No members to show</div>
-  ) : (
-    Object.keys(positionsMap).map(pos => (
-      <div key={pos} className="mb-4">
-        <h3 className="font-bold text-sm mb-1">{pos}</h3>
-        {positionsMap[pos].map((member, i) => (
-          <AttendanceMember
-            key={`${member.nickname}-${pos}-${i}`} // ✅ guaranteed unique
-            member={member}
+          <div>
+            <label className="text-xs font-semibold text-gray-600 block mb-1">Show members:</label>
+            <select
+              value={memberSource}
+              onChange={e => setMemberSource(e.target.value as MemberSource)}
+              className="border rounded px-2 py-1 text-xs w-full bg-white focus:ring-2 focus:ring-yellow-400"
+            >
+              <option value="all">👥 All members</option>
+              <option value="checkedin">✅ Checked-in</option>
+              <option value="rsvp">🗳️ RSVP Coming</option>
+            </select>
+          </div>
+        </div>
+      )}
+    </div>
+
+    {/* SECTION 2: Layouts */}
+    <div className="border-b bg-white">
+      <button
+        onClick={() => setOpenLayouts(s => !s)}
+        className="w-full flex justify-between items-center px-4 py-2 text-sm font-semibold text-[#2f2484] hover:bg-yellow-50"
+      >
+        <span>🧩 Layouts</span>
+        <span>{openLayouts ? "−" : "+"}</span>
+      </button>
+
+      {openLayouts && (
+        <div className="px-4 pb-4 space-y-3">
+          <input
+            type="text"
+            placeholder="Layout name"
+            value={layoutName}
+            onChange={e => setLayoutName(e.target.value)}
+            className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
           />
-        ))}
-      </div>
-    ))
-  )}
+          <input
+            type="text"
+            placeholder="Folder name (optional)"
+            value={folderName}
+            onChange={e => setFolderName(e.target.value)}
+            className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
+          />
+
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={saveLayout}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs w-full"
+            >
+              💾 Save Layout
+            </button>
+            {currentLayout && (
+              <button
+                onClick={updateLayout}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs w-full"
+              >
+                🔄 Update Layout
+              </button>
+            )}
+            <button
+              onClick={handleAutoAssign}
+              className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs w-full"
+            >
+              ⚡ Auto Assign
+            </button>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-600 block mb-1">Folder:</label>
+            <select
+              value={selectedFolder}
+              onChange={e => setSelectedFolder(e.target.value || undefined)}
+              className="border rounded px-2 py-1 text-xs w-full bg-white focus:ring-2 focus:ring-yellow-400"
+            >
+              <option value="">All folders</option>
+              {folders.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
+
+          <div className="max-h-40 overflow-y-auto border rounded bg-gray-50 divide-y divide-gray-200">
+            {filteredLayouts.length === 0 && (
+              <p className="text-xs text-gray-500 p-2">No saved layouts</p>
+            )}
+            {filteredLayouts.map(layout => (
+              <div
+                key={layout.id}
+                className="flex justify-between items-center px-2 py-1 hover:bg-yellow-50"
+              >
+                <button
+                  onClick={() => loadLayout(layout)}
+                  className="text-xs text-left flex-1 text-[#2f2484] hover:underline"
+                >
+                  {layout.name}
+                </button>
+                <button
+                  onClick={() => deleteLayout(layout.id)}
+                  className="text-red-500 hover:text-red-700 font-bold text-xs ml-2"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {loadingLayouts && (
+              <div className="text-xs text-gray-500 p-2">Loading...</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+
+    {/* SECTION 3: Members */}
+    <div className="flex-1 bg-gray-50">
+      <button
+        onClick={() => setOpenMembers(s => !s)}
+        className="w-full flex justify-between items-center px-4 py-2 text-sm font-semibold text-[#2f2484] hover:bg-yellow-50"
+      >
+        <span>👤 Members</span>
+        <span>{openMembers ? "−" : "+"}</span>
+      </button>
+
+      {openMembers && (
+        <div className="px-4 pb-4">
+          <input
+            type="text"
+            placeholder="Search members..."
+            value={memberSearch}
+            onChange={e => setMemberSearch(e.target.value)}
+            className="border rounded px-2 py-1 w-full text-xs mb-3 bg-white focus:ring-2 focus:ring-yellow-400"
+          />
+
+          <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-24rem)] pr-1">
+            {Object.keys(positionsMap).length === 0 ? (
+              <div className="text-xs text-gray-500">No members to show</div>
+            ) : (
+              Object.keys(positionsMap).map(pos => (
+                <div key={pos}>
+                  <h3 className="font-semibold text-xs text-gray-600 mb-1 border-b border-gray-200">
+                    {pos}
+                  </h3>
+                  <div className="space-y-0.5">
+                    {positionsMap[pos].map((member, i) => (
+                      <AttendanceMember
+                        key={`${member.nickname}-${pos}-${i}`}
+                        member={member}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
 </div>
 
-        </div>
+
 
         {/* --- MAIN CANVAS --- */}
         <div className="flex-1 border relative">
-          {/* Mobile top bar */}
           <div className="md:hidden flex items-center justify-between px-3 py-2 border-b bg-white sticky top-0 z-20">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setLeftDrawerOpen(true)}
                 className="p-2 rounded border text-sm"
-                aria-label="Open menu"
               >
                 ☰
               </button>
@@ -535,37 +657,35 @@ filteredMembers.forEach(m => {
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowAllMembers(prev => !prev)}
-                className="p-2 rounded border text-xs"
-                title="Toggle show all members / checked-in"
+              <select
+                value={memberSource}
+                onChange={e => setMemberSource(e.target.value as MemberSource)}
+                className="border rounded p-1 text-xs"
               >
-                {showAllMembers ? "👥 All" : "✅ Checked-in"}
-              </button>
+                <option value="all">👥 All</option>
+                <option value="checkedin">✅ Checked-in</option>
+                <option value="rsvp">🗳️ RSVP Coming</option>
+              </select>
               <button
                 onClick={() => setAddRoleOpen(prev => !prev)}
                 className="p-2 rounded border text-xs"
-                title="Toggle add role"
               >
                 {addRoleOpen ? "− Roles" : "+ Roles"}
               </button>
             </div>
           </div>
 
-          {/* ReactFlow wrapper */}
           <div className="reactflow-wrapper h-full w-full">
             <ReactFlow
               nodes={nodesWithHandlers}
               onNodesChange={onNodesChange}
               nodeTypes={nodeTypes}
               fitView
-              onNodeDragStop={(event: React.MouseEvent | React.TouchEvent, node) => {
+              onNodeDragStop={(event, node) => {
                 const trash = document.getElementById("trash-bin");
                 if (!trash) return;
                 const rect = trash.getBoundingClientRect();
-
                 let x: number, y: number;
-                // handle both mouse and touch events
                 const ev: any = event as any;
                 if (ev.clientX !== undefined && ev.clientY !== undefined) {
                   x = ev.clientX;
@@ -573,10 +693,7 @@ filteredMembers.forEach(m => {
                 } else if (ev.touches && ev.touches[0]) {
                   x = ev.touches[0].clientX;
                   y = ev.touches[0].clientY;
-                } else {
-                  return;
-                }
-
+                } else return;
                 if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
                   setNodes(prev => prev.filter(n => n.id !== node.id));
                 }
@@ -590,19 +707,15 @@ filteredMembers.forEach(m => {
           <TrashBin />
         </div>
 
-        {/* --- COLLAPSIBLE ADD ROLE (floating) --- */}
+        {/* --- Floating Roles panel --- */}
         <div className={`fixed right-4 top-24 z-50 flex flex-col items-end transition-all ${addRoleOpen ? "" : "gap-0"}`}>
-          {/* Toggle */}
           <button
             onClick={() => setAddRoleOpen(prev => !prev)}
             className="bg-gray-800 text-white px-3 py-2 rounded-full shadow-lg mb-2"
-            aria-expanded={addRoleOpen}
-            title={addRoleOpen ? "Collapse roles" : "Expand roles"}
           >
             {addRoleOpen ? "− Roles" : "+ Roles"}
           </button>
 
-          {/* Buttons list (hidden when collapsed) */}
           {addRoleOpen && (
             <div className="flex flex-col gap-2 max-h-[50vh] overflow-auto p-2 bg-white rounded-xl shadow-lg w-40">
               <h4 className="text-sm font-semibold text-center">Add Role</h4>
@@ -621,22 +734,24 @@ filteredMembers.forEach(m => {
           )}
         </div>
 
-        {/* --- BOTTOM DRAWER (mobile) for left panel --- */}
+        {/* --- BOTTOM DRAWER (mobile) --- */}
         <div
           className={`fixed left-0 right-0 z-40 md:hidden transition-transform duration-300
             ${leftDrawerOpen ? "translate-y-0" : "translate-y-full"} bottom-0`}
-          aria-hidden={!leftDrawerOpen}
         >
           <div className="bg-white border-t rounded-t-xl shadow-xl max-h-[70vh] overflow-auto">
             <div className="flex items-center justify-between p-3 border-b sticky top-0 bg-white z-10">
               <div className="font-semibold">Menu</div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowAllMembers(prev => !prev)}
-                  className="text-xs px-2 py-1 border rounded"
+                <select
+                  value={memberSource}
+                  onChange={e => setMemberSource(e.target.value as MemberSource)}
+                  className="border rounded p-1 text-xs"
                 >
-                  {showAllMembers ? "👥 All" : "✅ Checked-in"}
-                </button>
+                  <option value="all">👥 All</option>
+                  <option value="checkedin">✅ Checked-in</option>
+                  <option value="rsvp">🗳️ RSVP Coming</option>
+                </select>
                 <button onClick={() => setLeftDrawerOpen(false)} className="px-2 py-1 text-sm">Close</button>
               </div>
             </div>
@@ -675,20 +790,19 @@ filteredMembers.forEach(m => {
                   💾 Save Layout
                 </button>
                 {currentLayout && (
-  <button
-    onClick={updateLayout}
-    className="bg-yellow-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-yellow-700"
-  >
-    🔄 Update Layout
-  </button>
-)}
+                  <button
+                    onClick={updateLayout}
+                    className="bg-yellow-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-yellow-700"
+                  >
+                    🔄 Update Layout
+                  </button>
+                )}
                 <button
                   onClick={handleAutoAssign}
                   className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700"
                 >
                   ⚡ Auto Assign
                 </button>
-
               </div>
 
               <div className="mb-3">
@@ -712,38 +826,34 @@ filteredMembers.forEach(m => {
                 </div>
 
                 <div>
-  <h4 className="font-semibold mb-2 text-sm">Members</h4>
+                  <h4 className="font-semibold mb-2 text-sm">Members</h4>
+                  <div className="mb-2">
+                    <input
+                      type="text"
+                      placeholder="Search members..."
+                      value={memberSearch}
+                      onChange={e => setMemberSearch(e.target.value)}
+                      className="border rounded p-1 text-xs w-full"
+                    />
+                  </div>
 
-  {/* Search input */}
-  <div className="mb-2">
-    <input
-      type="text"
-      placeholder="Search members..."
-      value={memberSearch}
-      onChange={e => setMemberSearch(e.target.value)}
-      className="border rounded p-1 text-xs w-full"
-    />
-  </div>
-
-  {Object.keys(positionsMap).length === 0 ? (
-    <div className="text-xs text-gray-500">No members to show</div>
-  ) : (
-    Object.keys(positionsMap).map(pos => (
-      <div key={pos} className="mb-3">
-        <h5 className="font-medium text-xs mb-1">{pos}</h5>
-        {positionsMap[pos].map(member => (
-          <AttendanceMember key={member.nickname} member={member} />
-        ))}
-      </div>
-    ))
-  )}  
-</div>
-
+                  {Object.keys(positionsMap).length === 0 ? (
+                    <div className="text-xs text-gray-500">No members to show</div>
+                  ) : (
+                    Object.keys(positionsMap).map(pos => (
+                      <div key={pos} className="mb-3">
+                        <h5 className="font-medium text-xs mb-1">{pos}</h5>
+                        {positionsMap[pos].map(member => (
+                          <AttendanceMember key={member.nickname} member={member} />
+                        ))}
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-
       </div>
     </DndProvider>
   );

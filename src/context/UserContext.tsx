@@ -1,5 +1,11 @@
 "use client";
-import { createContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useContext,
+} from "react";
 
 // ✅ Define User type with isAdmin
 export type User = {
@@ -9,6 +15,7 @@ export type User = {
   position: string;
   position2: string;
   isAdmin: boolean; // always boolean
+  id?: string; // 👈 optional unique ID (useful for voting)
 };
 
 type UserContextType = {
@@ -16,11 +23,13 @@ type UserContextType = {
   setUser: (user: User | null) => void;
 };
 
+// ✅ Create context
 export const UserContext = createContext<UserContextType>({
   user: null,
   setUser: () => {},
 });
 
+// ✅ Provider
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
@@ -41,9 +50,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Persist to localStorage when user changes
+  useEffect(() => {
+    if (user) localStorage.setItem("pinyaUser", JSON.stringify(user));
+    else localStorage.removeItem("pinyaUser");
+  }, [user]);
+
   return (
     <UserContext.Provider value={{ user, setUser }}>
       {children}
     </UserContext.Provider>
   );
+}
+
+// ✅ Hook for easier access
+export function useUser() {
+  return useContext(UserContext);
 }

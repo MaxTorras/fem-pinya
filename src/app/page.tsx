@@ -1,27 +1,63 @@
 // src/app/page.tsx
+"use client";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase"; // if you already use it
+
+type Announcement = {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+};
 
 export default function HomePage() {
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("announcements")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      if (!error && data) setAnnouncements(data);
+      setLoading(false);
+    };
+
+    fetchAnnouncements();
+  }, []);
+
   return (
     <main className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center space-y-6">
-      {/* Welcome Card */}
-      <div className="bg-[#2f2484] text-white rounded-2xl shadow-lg p-8 max-w-md w-full">
-        <h1 className="text-3xl font-bold mb-2">Welcome to Fem Pinya 🚀</h1>
-        <p className="text-yellow-300">
-          This is the official Colla Castellera Edinburgh attendance app.
-        </p>
-      </div>
+      {/* Announcements Panel */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 max-w-md w-full border-l-4 border-[#2f2484]">
+        <h1 className="text-2xl font-bold mb-3 text-[#2f2484]">📢 Announcements</h1>
 
-      {/* Info / Quick Start */}
-      <div className="bg-white rounded-xl shadow-md p-6 max-w-md w-full border-l-4 border-[#FFD700]">
-        <h2 className="text-xl font-semibold mb-2 text-[#2f2484]">Get Started</h2>
-        <p className="text-gray-700">
-          Use the menu to check in, update your profile, and track attendance.
-        </p>
+        {loading ? (
+          <p className="text-gray-500">Loading...</p>
+        ) : announcements.length > 0 ? (
+          <ul className="space-y-4 text-left">
+            {announcements.map((a) => (
+              <li key={a.id} className="border-b border-gray-200 pb-2">
+                <h3 className="font-semibold text-[#2f2484]">{a.title}</h3>
+                <p className="text-gray-700 text-sm whitespace-pre-line">{a.message}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {new Date(a.created_at).toLocaleDateString()}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-gray-500">No announcements yet.</p>
+        )}
       </div>
 
       {/* Buttons */}
-      <div className="flex flex-col sm:flex-row gap-4 mt-2">
+      <div className="flex flex-col sm:flex-row gap-4 mt-4">
         <Link href="/check-in">
           <button className="bg-yellow-400 hover:bg-yellow-300 text-[#2f2484] font-semibold px-6 py-3 rounded-full shadow-md transition">
             Check In Now

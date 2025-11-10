@@ -1,7 +1,7 @@
 // src/app/admin/components/Tabs.tsx
 "use client";
 
-type TabType = "attendance" | "members" | "positions" | "stats" | "tecnica" | "votes" | "events";
+type TabType = "attendance" | "members" | "positions" | "stats" | "tecnica" | "votes" | "events" | "announcements";
 
 export default function Tabs({
   tabs,
@@ -36,7 +36,9 @@ export default function Tabs({
   ? "Tecnica"
   : tab === "votes"
   ? "Votes"
-  : "Events" }
+  : tab === "events"
+  ? "Events" 
+  : "Announcements"}
 
         </button>
       ))}

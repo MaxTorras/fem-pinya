@@ -15,8 +15,9 @@ import StatsTab from "./components/StatsTab";
 import TecnicaTab from "./components/TecnicaTab";
 import VotesTab from "./components/VotesTab";
 import EventsTab from "./components/EventsTab";
+import AnnouncementsTab from "./components/AnnouncementsTab"; // 👈 new import
 
-type TabType = "attendance" | "members" | "positions" | "stats" | "tecnica" | "votes" | "events";
+type TabType = "attendance" | "members" | "positions" | "stats" | "tecnica" | "votes" | "events" | "announcements";
 
 const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
@@ -57,7 +58,7 @@ export default function AdminPage() {
       <h1 className="text-3xl font-bold text-[#2f2484] dark:text-yellow-400 mb-6">Admin Dashboard</h1>
 
       <Tabs
-  tabs={["attendance", "members", "positions", "stats", "tecnica", "votes", "events"]} // ✅ lowercase
+  tabs={["attendance", "members", "positions", "stats", "tecnica", "votes", "events", "announcements"]} // ✅ lowercase
   activeTab={activeTab}
   setActiveTab={setActiveTab}
 />
@@ -73,6 +74,7 @@ export default function AdminPage() {
           {activeTab === "tecnica" && <TecnicaTab layouts={layouts} />}
           {activeTab === "votes" && <VotesTab members={members} />}
           {activeTab === "events" && <EventsTab />}
+          {activeTab === "announcements" && <AnnouncementsTab />}
         </>
       )}
     </main>

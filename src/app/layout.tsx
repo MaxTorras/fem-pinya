@@ -25,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* PWA meta tags */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#2f2484" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" /> {/* keep for Safari */}
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" /> 
         <meta name="apple-mobile-web-app-title" content="Fem Pinya" />

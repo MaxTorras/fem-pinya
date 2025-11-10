@@ -34,7 +34,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState<string | null>(null);
   const [showVotes, setShowVotes] = useState<Poll | null>(null);
-  const [pulsePollId, setPulsePollId] = useState<string | null>(null); // 👈 highlight changed poll
+  const [pulsePollId, setPulsePollId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   // 🔁 Fetch announcements + polls + votes + members
   const fetchData = async () => {
@@ -67,22 +68,18 @@ export default function HomePage() {
           const newVote = payload.new as PollVote;
           const oldVote = payload.old as PollVote;
 
-          // Handle all 3 event types safely
           setAnnouncements((prev) => {
             const copy = JSON.parse(JSON.stringify(prev)) as Announcement[];
             for (const a of copy) {
               if (!a.polls) continue;
               for (const poll of a.polls) {
                 if (poll.id === (newVote?.poll_id || oldVote?.poll_id)) {
-                  // remove previous version
                   poll.poll_votes = poll.poll_votes.filter(
                     (v) => v.user_id !== (newVote?.user_id || oldVote?.user_id)
                   );
-
                   if (payload.eventType !== "DELETE" && newVote) {
                     poll.poll_votes.push(newVote);
                   }
-                  // trigger visual pulse
                   setPulsePollId(poll.id);
                   setTimeout(() => setPulsePollId(null), 800);
                 }
@@ -134,6 +131,10 @@ export default function HomePage() {
 
     if (error) {
       alert("Error voting: " + error.message);
+    } else {
+      // ✅ show toast
+      setToast("Vote saved ✅");
+      setTimeout(() => setToast(null), 2000);
     }
 
     setVoting(null);
@@ -149,9 +150,17 @@ export default function HomePage() {
   const getDisplayName = (id: string) =>
     members.find((m) => m.nickname === id)?.nickname || id;
 
-  // 🎨 UI
+  // 🎨 Force light mode styles globally
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+    document.body.classList.remove("dark");
+    document.body.style.backgroundColor = "#f9fafb";
+    document.body.style.color = "#111827";
+  }, []);
+
+  // 🧁 UI
   return (
-    <main className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center space-y-6">
+    <main className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center space-y-6 bg-gray-50 text-gray-900">
       {/* 🟨 Top Buttons */}
       <div className="flex flex-col sm:flex-row gap-4 mt-4 mb-4">
         <Link href="/check-in">
@@ -297,6 +306,13 @@ export default function HomePage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ✅ Toast notification */}
+      {toast && (
+        <div className="fixed bottom-6 bg-[#2f2484] text-yellow-300 px-4 py-2 rounded-full shadow-md animate-fadeInOut z-50">
+          {toast}
         </div>
       )}
     </main>

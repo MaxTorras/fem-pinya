@@ -21,7 +21,7 @@ type Event = {
   date: string;
   folder: "Performances" | "Rehearsals" | "Socials";
   time: string;
-  google_form?: string; // ✅ new optional field
+  google_form?: string;
 };
 
 type Vote = "coming" | "late" | "not coming";
@@ -33,31 +33,26 @@ export default function MainPage() {
   const [monthOpen, setMonthOpen] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [votes, setVotes] = useState<Record<string, Vote>>({}); // eventId -> vote
+  const [votes, setVotes] = useState<Record<string, Vote>>({});
 
-  // Fetch events from Supabase
   const loadEvents = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("events")
       .select("*")
       .order("date", { ascending: true });
-    if (error) console.error("Supabase fetch error:", error);
-    else setEvents(data as Event[]);
+    if (!error) setEvents(data as Event[]);
     setLoading(false);
   };
 
-  // Fetch votes for logged-in user
   const loadVotes = async () => {
     if (!user) return;
-
     const { data, error } = await supabase
       .from("votes")
       .select("*")
       .eq("nickname", user.nickname);
 
-    if (error) console.error("Supabase votes error:", error);
-    else {
+    if (!error) {
       const newVotes: Record<string, Vote> = {};
       (data || []).forEach((v: any) => {
         if (v.eventId && v.vote) newVotes[v.eventId] = v.vote;
@@ -84,11 +79,14 @@ export default function MainPage() {
   const startOfWeek = selectedDate.startOf("isoWeek");
   const daysOfWeek = [...Array(7)].map((_, i) => startOfWeek.add(i, "day"));
 
+  // ✅ FIXED: use isoWeek for consistent Monday-based weeks
   const startOfMonth = selectedDate.startOf("month");
   const endOfMonth = selectedDate.endOf("month");
   const daysInMonth: dayjs.Dayjs[] = [];
-  let cursor = startOfMonth.startOf("week");
-  while (cursor.isBefore(endOfMonth.endOf("week"))) {
+  let cursor = startOfMonth.startOf("isoWeek");
+  const lastDay = endOfMonth.endOf("isoWeek");
+
+  while (cursor.isSame(lastDay, "day") || cursor.isBefore(lastDay)) {
     daysInMonth.push(cursor);
     cursor = cursor.add(1, "day");
   }
@@ -98,29 +96,22 @@ export default function MainPage() {
   const handleVote = async (eventId: string, voteValue: Vote) => {
     if (!user) return;
 
-    // Optimistic update
     setVotes((prev) => ({ ...prev, [eventId]: voteValue }));
 
-    const { error } = await supabase
-      .from("votes")
-      .upsert(
-        [{ eventId, nickname: user.nickname, vote: voteValue }],
-        { onConflict: '"eventId","nickname"' }
-      );
-
-    if (error) console.error("Error saving vote:", error);
+    await supabase.from("votes").upsert(
+      [{ eventId, nickname: user.nickname, vote: voteValue }],
+      { onConflict: '"eventId","nickname"' }
+    );
   };
 
   return (
     <main className="p-6 max-w-2xl mx-auto space-y-6">
-      {/* Header */}
       <div className="text-center">
         <h1 className="text-3xl font-bold text-[#2f2484]">Calendar</h1>
       </div>
 
       {/* Calendar Section */}
       <section className="bg-white shadow-md rounded-2xl p-4 border border-gray-100">
-        {/* Month Header */}
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-[#2f2484]">
             {selectedDate.format("MMMM YYYY")}
@@ -156,6 +147,7 @@ export default function MainPage() {
                     {d}
                   </div>
                 ))}
+
                 {daysInMonth.map((day) => {
                   const isCurrentMonth = day.month() === selectedDate.month();
                   const isSelected = day.isSame(selectedDate, "day");
@@ -261,14 +253,12 @@ export default function MainPage() {
               key={event.id}
               className="border-l-4 border-[#FFD700] pl-3 py-2 hover:bg-yellow-50 rounded transition mb-2 flex justify-between items-center"
             >
-              {/* Event info */}
               <div>
                 <p className="font-medium text-[#2f2484]">{event.title}</p>
                 <p className="text-sm text-gray-600">
                   {dayjs(event.date).format("dddd, MMM D")} – {event.time}
                 </p>
 
-                {/* ✅ Show Google Form link if available */}
                 {event.google_form && (
                   <a
                     href={event.google_form}
@@ -281,7 +271,6 @@ export default function MainPage() {
                 )}
               </div>
 
-              {/* Voting buttons */}
               {user && (
                 <div className="flex flex-col gap-2 ml-4">
                   <button
@@ -294,6 +283,7 @@ export default function MainPage() {
                   >
                     <CheckCircle size={24} />
                   </button>
+
                   <button
                     onClick={() => handleVote(event.id, "late")}
                     className={`p-1 rounded-full ${
@@ -304,6 +294,7 @@ export default function MainPage() {
                   >
                     <Clock size={24} />
                   </button>
+
                   <button
                     onClick={() => handleVote(event.id, "not coming")}
                     className={`p-1 rounded-full ${

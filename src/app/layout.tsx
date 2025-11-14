@@ -31,7 +31,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-title" content="Fem Pinya" />
         <link rel="apple-touch-icon" href="/icons/icon-512x512.png" />
 
-        {/* ✅ Force light mode globally */}
+        {/* ✅ Prevent system dark mode auto-inversion */}
+        <meta name="color-scheme" content="light" />
+
+        {/* Force light mode globally */}
         <script
           dangerouslySetInnerHTML={{
             __html: `

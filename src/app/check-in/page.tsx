@@ -25,8 +25,15 @@ export default function CheckIn() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
-  const [suggestions, setSuggestions] = useState<Member[]>([]); // ✅ now store full member
+  const [suggestions, setSuggestions] = useState<Member[]>([]);
   const router = useRouter();
+
+  // ✅ FIX: sync nickname when user becomes available
+  useEffect(() => {
+    if (user && !nickname) {
+      setNickname(user.nickname);
+    }
+  }, [user, nickname]);
 
   useEffect(() => {
     const fetchMembers = async () => {
@@ -166,22 +173,21 @@ export default function CheckIn() {
       )}
 
       <div className="flex flex-col gap-4 mt-6 items-center w-full">
-  <button
-    onClick={handleSubmit}
-    disabled={loading}
-    className="bg-[#2f2484] text-white px-8 py-3 rounded font-semibold hover:bg-yellow-400 hover:text-[#2f2484] transition w-64"
-  >
-    {loading ? "Submitting..." : "Check In"}
-  </button>
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="bg-[#2f2484] text-white px-8 py-3 rounded font-semibold hover:bg-yellow-400 hover:text-[#2f2484] transition w-64"
+        >
+          {loading ? "Submitting..." : "Check In"}
+        </button>
 
-  <button
-    onClick={() => router.push("/pinyes-overview")}
-    className="bg-green-600 text-white px-8 py-3 rounded font-semibold hover:bg-green-500 transition w-64"
-  >
-    View Pinyes Overview
-  </button>
-</div>
-
+        <button
+          onClick={() => router.push("/pinyes-overview")}
+          className="bg-green-600 text-white px-8 py-3 rounded font-semibold hover:bg-green-500 transition w-64"
+        >
+          View Pinyes Overview
+        </button>
+      </div>
 
       {status && (
         <p

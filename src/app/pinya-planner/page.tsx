@@ -1,3 +1,4 @@
+// src\app\pinya-planner\page.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 "use client";
@@ -43,8 +44,9 @@ export default function PinyaPlannerPage() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [savedLayouts, setSavedLayouts] = useState<PinyaLayout[]>([]);
   const [layoutName, setLayoutName] = useState("");
-  const [folderName, setFolderName] = useState("");
-  const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined);
+  const [selectedSaveFolder, setSelectedSaveFolder] = useState<string>(""); // folder to save in
+  const [newFolderName, setNewFolderName] = useState(""); // create new folder
+  const [selectedFolder, setSelectedFolder] = useState<string | undefined>(undefined); // filter
   const [leftDrawerOpen, setLeftDrawerOpen] = useState(false);
   const [addRoleOpen, setAddRoleOpen] = useState(true);
   const [loadingLayouts, setLoadingLayouts] = useState(false);
@@ -236,44 +238,49 @@ useEffect(() => {
 
   // --- Save layout ---
   const saveLayout = async () => {
-    if (!layoutName.trim()) return alert("Please name your layout!");
+  if (!layoutName.trim()) return alert("Please name your layout!");
 
-    const layout: PinyaLayout = {
-      id: Date.now().toString(),
-      name: layoutName,
-      folder: folderName || undefined,
-      castellType: "4d7",
-      positions: nodes.map(n => ({
-        id: n.id,
-        label: n.data?.label ?? "",
-        x: n.position?.x ?? 0,
-        y: n.position?.y ?? 0,
-        member: n.data?.member,
-        rotation: n.data?.rotation ?? 0,
-      })),
-    };
+  // use new folder name if given, otherwise selected existing folder
+  const folderToSave = newFolderName.trim() || selectedSaveFolder || undefined;
 
-    try {
-      const res = await fetch("/api/layouts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(layout),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        alert(`✅ Layout '${layoutName}' ${data.message}`);
-        setLayoutName("");
-        setFolderName("");
-        fetchLayouts();
-      } else {
-        alert("❌ Failed to save layout");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("❌ Error saving layout");
-    }
+  const layout: PinyaLayout = {
+    id: Date.now().toString(),
+    name: layoutName,
+    folder: folderToSave,
+    castellType: "4d7",
+    positions: nodes.map(n => ({
+      id: n.id,
+      label: n.data?.label ?? "",
+      x: n.position?.x ?? 0,
+      y: n.position?.y ?? 0,
+      member: n.data?.member,
+      rotation: n.data?.rotation ?? 0,
+    })),
   };
+
+  try {
+    const res = await fetch("/api/layouts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(layout),
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      alert(`✅ Layout '${layoutName}' ${data.message}`);
+      setLayoutName("");
+      setSelectedSaveFolder("");
+      setNewFolderName("");
+      fetchLayouts();
+    } else {
+      alert("❌ Failed to save layout");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("❌ Error saving layout");
+  }
+};
+
 
   // --- Load / update / delete layout ---
   const loadLayout = (layout: PinyaLayout) => {
@@ -446,194 +453,163 @@ useEffect(() => {
   return (
     <DndProvider backend={isMobile ? TouchBackend : HTML5Backend}>
       <div className="flex h-screen w-full relative bg-white">
-{/* --- LEFT PANEL (desktop, collapsible) --- */}
-<div className="hidden md:flex md:w-72 border-r flex-col bg-gray-50">
+{/* --- LEFT PANEL (desktop) – Layouts + Roles --- */}
+<div className="hidden md:flex md:w-72 border-r bg-gray-50">
   <div className="flex-1 flex flex-col overflow-y-auto">
 
-    {/* SECTION 1: Session Settings */}
+    {/* LAYOUTS SECTION */}
     <div className="border-b bg-white">
       <button
-        onClick={() => setOpenSession(s => !s)}
+        onClick={() => setOpenLayouts((s) => !s)}
         className="w-full flex justify-between items-center px-4 py-2 text-sm font-semibold text-[#2f2484] hover:bg-yellow-50"
       >
-        <span>📅 Session Settings</span>
-        <span>{openSession ? "−" : "+"}</span>
-      </button>
-
-      {openSession && (
-        <div className="px-4 pb-4 space-y-3">
-          <div>
-            <label className="text-xs font-semibold block text-gray-600 mb-1">Attendance date:</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
-              max={todayIso}
-            />
-          </div>
-
-          {memberSource === "rsvp" && (
-            <div>
-              <label className="text-xs font-semibold block text-gray-600 mb-1">RSVP date:</label>
-              <input
-                type="date"
-                value={rsvpDate}
-                onChange={(e) => setRsvpDate(e.target.value)}
-                className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">Show members:</label>
-            <select
-              value={memberSource}
-              onChange={e => setMemberSource(e.target.value as MemberSource)}
-              className="border rounded px-2 py-1 text-xs w-full bg-white focus:ring-2 focus:ring-yellow-400"
-            >
-              <option value="all">👥 All members</option>
-              <option value="checkedin">✅ Checked-in</option>
-              <option value="rsvp">🗳️ RSVP Coming</option>
-            </select>
-          </div>
-        </div>
-      )}
-    </div>
-
-    {/* SECTION 2: Layouts */}
-    <div className="border-b bg-white">
-      <button
-        onClick={() => setOpenLayouts(s => !s)}
-        className="w-full flex justify-between items-center px-4 py-2 text-sm font-semibold text-[#2f2484] hover:bg-yellow-50"
-      >
-        <span>🧩 Layouts</span>
+        <span>Layouts</span>
         <span>{openLayouts ? "−" : "+"}</span>
       </button>
 
       {openLayouts && (
-        <div className="px-4 pb-4 space-y-3">
-          <input
-            type="text"
-            placeholder="Layout name"
-            value={layoutName}
-            onChange={e => setLayoutName(e.target.value)}
-            className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
-          />
-          <input
-            type="text"
-            placeholder="Folder name (optional)"
-            value={folderName}
-            onChange={e => setFolderName(e.target.value)}
-            className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
-          />
+        <div className="px-4 pb-4 space-y-4">
+          {/* Save layout */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold block text-gray-600">
+              Layout name
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. 4d7 – full pinya"
+              value={layoutName}
+              onChange={(e) => setLayoutName(e.target.value)}
+              className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
+            />
 
-          <div className="flex flex-col gap-1">
-            <button
-              onClick={saveLayout}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs w-full"
-            >
-              💾 Save Layout
-            </button>
-            {currentLayout && (
+            <div className="space-y-1 mt-2">
+              <label className="text-xs font-semibold block text-gray-600">
+                Save in folder
+              </label>
+              <select
+                value={selectedSaveFolder}
+                onChange={(e) => setSelectedSaveFolder(e.target.value)}
+                className="border rounded px-2 py-1 text-xs w-full bg-white focus:ring-2 focus:ring-yellow-400"
+              >
+                <option value="">No folder</option>
+                {folders.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="Or create new folder..."
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
+              />
+              <p className="text-[10px] text-gray-500">
+                If you type a new folder name, the layout will be saved there.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1 mt-2">
               <button
-                onClick={updateLayout}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs w-full"
+                onClick={saveLayout}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs w-full"
               >
-                🔄 Update Layout
+                💾 Save Layout
               </button>
-            )}
-            <button
-              onClick={handleAutoAssign}
-              className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs w-full"
-            >
-              ⚡ Auto Assign
-            </button>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-1">Folder:</label>
-            <select
-              value={selectedFolder}
-              onChange={e => setSelectedFolder(e.target.value || undefined)}
-              className="border rounded px-2 py-1 text-xs w-full bg-white focus:ring-2 focus:ring-yellow-400"
-            >
-              <option value="">All folders</option>
-              {folders.map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
-          </div>
-
-          <div className="max-h-40 overflow-y-auto border rounded bg-gray-50 divide-y divide-gray-200">
-            {filteredLayouts.length === 0 && (
-              <p className="text-xs text-gray-500 p-2">No saved layouts</p>
-            )}
-            {filteredLayouts.map(layout => (
-              <div
-                key={layout.id}
-                className="flex justify-between items-center px-2 py-1 hover:bg-yellow-50"
+              {currentLayout && (
+                <button
+                  onClick={updateLayout}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs w-full"
+                >
+                  🔄 Update Layout
+                </button>
+              )}
+              <button
+                onClick={handleAutoAssign}
+                className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs w-full"
               >
-                <button
-                  onClick={() => loadLayout(layout)}
-                  className="text-xs text-left flex-1 text-[#2f2484] hover:underline"
+                ⚡ Auto Assign
+              </button>
+            </div>
+          </div>
+
+          {/* Filter + list */}
+          <div className="space-y-2">
+            <div>
+              <label className="text-xs font-semibold text-gray-600 block mb-1">
+                Filter by folder
+              </label>
+              <select
+                value={selectedFolder}
+                onChange={(e) =>
+                  setSelectedFolder(e.target.value || undefined)
+                }
+                className="border rounded px-2 py-1 text-xs w-full bg-white focus:ring-2 focus:ring-yellow-400"
+              >
+                <option value="">All folders</option>
+                {folders.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="max-h-40 overflow-y-auto border rounded bg-gray-50 divide-y divide-gray-200">
+              {filteredLayouts.length === 0 && !loadingLayouts && (
+                <p className="text-xs text-gray-500 p-2">No saved layouts</p>
+              )}
+              {filteredLayouts.map((layout) => (
+                <div
+                  key={layout.id}
+                  className="flex justify-between items-center px-2 py-1 hover:bg-yellow-50"
                 >
-                  {layout.name}
-                </button>
-                <button
-                  onClick={() => deleteLayout(layout.id)}
-                  className="text-red-500 hover:text-red-700 font-bold text-xs ml-2"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            {loadingLayouts && (
-              <div className="text-xs text-gray-500 p-2">Loading...</div>
-            )}
+                  <button
+                    onClick={() => loadLayout(layout)}
+                    className="text-xs text-left flex-1 text-[#2f2484] hover:underline"
+                  >
+                    {layout.name}
+                  </button>
+                  <button
+                    onClick={() => deleteLayout(layout.id)}
+                    className="text-red-500 hover:text-red-700 font-bold text-xs ml-2"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {loadingLayouts && (
+                <div className="text-xs text-gray-500 p-2">Loading...</div>
+              )}
+            </div>
           </div>
         </div>
       )}
     </div>
 
-    {/* SECTION 3: Members */}
+    {/* ROLES SECTION */}
     <div className="flex-1 bg-gray-50">
       <button
-        onClick={() => setOpenMembers(s => !s)}
+        onClick={() => setAddRoleOpen((s) => !s)}
         className="w-full flex justify-between items-center px-4 py-2 text-sm font-semibold text-[#2f2484] hover:bg-yellow-50"
       >
-        <span>👤 Members</span>
-        <span>{openMembers ? "−" : "+"}</span>
+        <span>Roles</span>
+        <span>{addRoleOpen ? "−" : "+"}</span>
       </button>
 
-      {openMembers && (
+      {addRoleOpen && (
         <div className="px-4 pb-4">
-          <input
-            type="text"
-            placeholder="Search members..."
-            value={memberSearch}
-            onChange={e => setMemberSearch(e.target.value)}
-            className="border rounded px-2 py-1 w-full text-xs mb-3 bg-white focus:ring-2 focus:ring-yellow-400"
-          />
-
-          <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-24rem)] pr-1">
-            {Object.keys(positionsMap).length === 0 ? (
-              <div className="text-xs text-gray-500">No members to show</div>
-            ) : (
-              Object.keys(positionsMap).map(pos => (
-                <div key={pos}>
-                  <h3 className="font-semibold text-xs text-gray-600 mb-1 border-b border-gray-200">
-                    {pos}
-                  </h3>
-                  <div className="space-y-0.5">
-                    {positionsMap[pos].map((member, i) => (
-                      <AttendanceMember
-                        key={`${member.nickname}-${pos}-${i}`}
-                        member={member}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            {quickRoles.map((role) => (
+              <button
+                key={role}
+                onClick={() => addRole(role)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-md text-xs"
+              >
+                + {role}
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -706,9 +682,122 @@ useEffect(() => {
 
           <TrashBin />
         </div>
+        {/* --- RIGHT PANEL (desktop) – Session + Members --- */}
+<div className="hidden md:flex md:w-72 border-l bg-gray-50">
+  <div className="flex-1 flex flex-col overflow-y-auto">
+
+    {/* SESSION SETTINGS */}
+    <div className="border-b bg-white">
+      <button
+        onClick={() => setOpenSession((s) => !s)}
+        className="w-full flex justify-between items-center px-4 py-2 text-sm font-semibold text-[#2f2484] hover:bg-yellow-50"
+      >
+        <span>Session settings</span>
+        <span>{openSession ? "−" : "+"}</span>
+      </button>
+
+      {openSession && (
+        <div className="px-4 pb-4 space-y-3">
+          <div>
+            <label className="text-xs font-semibold block text-gray-600 mb-1">
+              Attendance date
+            </label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
+              max={todayIso}
+            />
+          </div>
+
+          {memberSource === "rsvp" && (
+            <div>
+              <label className="text-xs font-semibold block text-gray-600 mb-1">
+                RSVP date
+              </label>
+              <input
+                type="date"
+                value={rsvpDate}
+                onChange={(e) => setRsvpDate(e.target.value)}
+                className="border rounded px-2 py-1 w-full text-xs bg-gray-50 focus:ring-2 focus:ring-yellow-400"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs font-semibold text-gray-600 block mb-1">
+              Show members
+            </label>
+            <select
+              value={memberSource}
+              onChange={(e) =>
+                setMemberSource(e.target.value as MemberSource)
+              }
+              className="border rounded px-2 py-1 text-xs w-full bg-white focus:ring-2 focus:ring-yellow-400"
+            >
+              <option value="all">All members</option>
+              <option value="checkedin">Checked-in</option>
+              <option value="rsvp">RSVP coming</option>
+            </select>
+          </div>
+        </div>
+      )}
+    </div>
+
+    {/* MEMBERS */}
+    <div className="flex-1 bg-gray-50">
+      <button
+        onClick={() => setOpenMembers((s) => !s)}
+        className="w-full flex justify-between items-center px-4 py-2 text-sm font-semibold text-[#2f2484] hover:bg-yellow-50"
+      >
+        <span>Members</span>
+        <span>{openMembers ? "−" : "+"}</span>
+      </button>
+
+      {openMembers && (
+        <div className="px-4 pb-4">
+          <input
+            type="text"
+            placeholder="Search members..."
+            value={memberSearch}
+            onChange={(e) => setMemberSearch(e.target.value)}
+            className="border rounded px-2 py-1 w-full text-xs mb-3 bg-white focus:ring-2 focus:ring-yellow-400"
+          />
+
+          <div className="space-y-3 overflow-y-auto max-h-[calc(100vh-18rem)] pr-1">
+            {Object.keys(positionsMap).length === 0 ? (
+              <div className="text-xs text-gray-500">No members to show</div>
+            ) : (
+              Object.keys(positionsMap).map((pos) => (
+                <div key={pos}>
+                  <h3 className="font-semibold text-xs text-gray-600 mb-1 border-b border-gray-200">
+                    {pos}
+                  </h3>
+                  <div className="space-y-0.5">
+                    {positionsMap[pos].map((member, i) => (
+                      <AttendanceMember
+                        key={`${member.nickname}-${pos}-${i}`}
+                        member={member}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
 
         {/* --- Floating Roles panel --- */}
-        <div className={`fixed right-4 top-24 z-50 flex flex-col items-end transition-all ${addRoleOpen ? "" : "gap-0"}`}>
+        <div
+  className={`fixed right-4 top-24 z-50 flex flex-col items-end transition-all md:hidden ${
+    addRoleOpen ? "" : "gap-0"
+  }`}
+>
           <button
             onClick={() => setAddRoleOpen(prev => !prev)}
             className="bg-gray-800 text-white px-3 py-2 rounded-full shadow-lg mb-2"
@@ -757,53 +846,59 @@ useEffect(() => {
             </div>
 
             <div className="p-3">
-              <div className="mb-3">
-                <label className="text-xs font-semibold mb-1 block">Select date:</label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={e => setSelectedDate(e.target.value)}
-                  className="border rounded p-1 w-full text-xs"
-                  max={todayIso}
-                />
-              </div>
+             <div className="mb-3">
+  <label className="text-xs font-semibold mb-1 block">Layout name</label>
+  <input
+    type="text"
+    placeholder="e.g. 4d7 – full pinya"
+    value={layoutName}
+    onChange={e => setLayoutName(e.target.value)}
+    className="border rounded p-1 w-full text-xs mb-2"
+  />
 
-              <div className="mb-3">
-                <input
-                  type="text"
-                  placeholder="Layout name"
-                  value={layoutName}
-                  onChange={e => setLayoutName(e.target.value)}
-                  className="border rounded p-1 w-full text-xs mb-1"
-                />
-                <input
-                  type="text"
-                  placeholder="Folder name (optional)"
-                  value={folderName}
-                  onChange={e => setFolderName(e.target.value)}
-                  className="border rounded p-1 w-full text-xs mb-1"
-                />
-                <button
-                  onClick={saveLayout}
-                  className="bg-blue-600 text-white px-2 py-1 rounded w-full text-xs mb-2"
-                >
-                  💾 Save Layout
-                </button>
-                {currentLayout && (
-                  <button
-                    onClick={updateLayout}
-                    className="bg-yellow-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-yellow-700"
-                  >
-                    🔄 Update Layout
-                  </button>
-                )}
-                <button
-                  onClick={handleAutoAssign}
-                  className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700"
-                >
-                  ⚡ Auto Assign
-                </button>
-              </div>
+  <label className="text-xs font-semibold mb-1 block">Save in folder</label>
+  <select
+    value={selectedSaveFolder}
+    onChange={e => setSelectedSaveFolder(e.target.value)}
+    className="border rounded p-1 w-full text-xs mb-1"
+  >
+    <option value="">No folder</option>
+    {folders.map(f => (
+      <option key={f} value={f}>
+        {f}
+      </option>
+    ))}
+  </select>
+  <input
+    type="text"
+    placeholder="Or new folder name..."
+    value={newFolderName}
+    onChange={e => setNewFolderName(e.target.value)}
+    className="border rounded p-1 w-full text-xs mb-2"
+  />
+
+  <button
+    onClick={saveLayout}
+    className="bg-blue-600 text-white px-2 py-1 rounded w-full text-xs mb-2"
+  >
+    💾 Save Layout
+  </button>
+  {currentLayout && (
+    <button
+      onClick={updateLayout}
+      className="bg-yellow-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-yellow-700"
+    >
+      🔄 Update Layout
+    </button>
+  )}
+  <button
+    onClick={handleAutoAssign}
+    className="bg-green-600 text-white px-2 py-1 rounded w-full text-xs mb-2 hover:bg-green-700"
+  >
+    ⚡ Auto Assign
+  </button>
+</div>
+
 
               <div className="mb-3">
                 <select

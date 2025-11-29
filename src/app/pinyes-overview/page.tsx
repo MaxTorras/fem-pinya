@@ -1,3 +1,4 @@
+// src/app/pinyes-overview/page.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -29,6 +30,7 @@ export type PinyaLayout = {
   id: string;
   name: string;
   positions: LayoutPosition[];
+  published_dates?: string[]; // optional, but present in API
 };
 
 type LayoutResponse = { layouts: PinyaLayout[] };
@@ -49,15 +51,15 @@ export default function PinyesOverviewPage() {
   const lastDistance = useRef<number | null>(null);
   const lastCenter = useRef<{ x: number; y: number } | null>(null);
 
-  // Fetch today's layouts
+  // Fetch ALL published layouts (long-term)
   useEffect(() => {
     const fetchLayouts = async () => {
       try {
-        const today = new Date().toISOString().split("T")[0];
-        const res = await fetch(`/api/layouts/published?date=${today}`);
+        const res = await fetch("/api/layouts/published");
         const data = (await res.json()) as LayoutResponse;
-        setLayouts(Array.isArray(data.layouts) ? data.layouts : []);
-        if (data.layouts?.length) setActiveLayoutId(data.layouts[0].id);
+        const list = Array.isArray(data.layouts) ? data.layouts : [];
+        setLayouts(list);
+        if (list.length) setActiveLayoutId(list[0].id);
       } catch (err) {
         console.error("Failed to fetch layouts", err);
         setLayouts([]);
@@ -175,10 +177,12 @@ export default function PinyesOverviewPage() {
       isDragging = true;
       start = { x: e.clientX - offset.x, y: e.clientY - offset.y };
     };
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
       setOffset({ x: e.clientX - start.x, y: e.clientY - start.y });
     };
+
     const handleMouseUp = () => {
       isDragging = false;
     };

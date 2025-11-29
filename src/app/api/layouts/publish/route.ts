@@ -1,15 +1,18 @@
+// src/app/api/layouts/publish/route.ts
 import { supabase } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
-    const { layoutIds, date } = await req.json();
+    const { layoutIds } = await req.json();
 
-    if (!layoutIds || !Array.isArray(layoutIds) || !date) {
-      return new Response(JSON.stringify({ error: "Missing layoutIds or date" }), { status: 400 });
+    if (!layoutIds || !Array.isArray(layoutIds) || layoutIds.length === 0) {
+      return new Response(JSON.stringify({ error: "Missing layoutIds" }), {
+        status: 400,
+      });
     }
 
     for (const layoutId of layoutIds) {
-      // Fetch current published_dates
+      // Get current published_dates
       const { data: existing, error: fetchError } = await supabase
         .from("layouts")
         .select("published_dates")
@@ -18,15 +21,13 @@ export async function POST(req: Request) {
 
       if (fetchError) throw fetchError;
 
-      // Use date as-is (YYYY-MM-DD)
-      const isoDate = date;
+      const currentDates = Array.isArray(existing?.published_dates)
+        ? (existing.published_dates as string[])
+        : [];
 
-      // Ensure uniqueness
-      const updatedDates = Array.isArray(existing?.published_dates)
-        ? Array.from(new Set([...existing.published_dates, isoDate]))
-        : [isoDate];
+      // Use a sentinel value "GLOBAL" to mean "published long term"
+      const updatedDates = Array.from(new Set([...currentDates, "GLOBAL"]));
 
-      // Update the layout
       const { error: updateError } = await supabase
         .from("layouts")
         .update({ published_dates: updatedDates })
@@ -39,9 +40,13 @@ export async function POST(req: Request) {
   } catch (err) {
     if (err instanceof Error) {
       console.error("POST /api/layouts/publish failed:", err.message);
-      return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+      });
     }
     console.error("POST /api/layouts/publish failed:", err);
-    return new Response(JSON.stringify({ error: "Unknown error" }), { status: 500 });
+    return new Response(JSON.stringify({ error: "Unknown error" }), {
+      status: 500,
+    });
   }
 }

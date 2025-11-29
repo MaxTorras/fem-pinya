@@ -3,55 +3,77 @@
 
 import { useState } from "react";
 
-type PinyaLayout = { id: string; name: string; folder?: string; publishedDates?: string[] };
+// 👇 Match the DB: snake_case `published_dates`
+type PinyaLayout = {
+  id: string;
+  name: string;
+  folder?: string;
+  published_dates?: string[]; // Supabase column
+};
 
 export default function TecnicaTab({ layouts }: { layouts: PinyaLayout[] }) {
   const [selectedLayouts, setSelectedLayouts] = useState<string[]>([]);
-  const isoDate = new Date().toISOString().split("T")[0];
+
+  const toggleSelected = (layoutId: string) => {
+    setSelectedLayouts((prev) =>
+      prev.includes(layoutId)
+        ? prev.filter((id) => id !== layoutId)
+        : [...prev, layoutId]
+    );
+  };
+
+  const handlePublish = async () => {
+    try {
+      await fetch("/api/layouts/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // long-term publish: no date, just ids
+        body: JSON.stringify({ layoutIds: selectedLayouts }),
+      });
+
+      setSelectedLayouts([]);
+      alert("Layouts published to Pinya Overview!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to publish layouts");
+    }
+  };
+
+  const handleUnpublish = async () => {
+    try {
+      await fetch("/api/layouts/unpublish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ layoutIds: selectedLayouts }),
+      });
+
+      setSelectedLayouts([]);
+      alert("Layouts unpublished from Pinya Overview");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to unpublish layouts");
+    }
+  };
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Tecnica – Select Layouts for Today</h2>
+      <h2 className="text-lg font-semibold text-[#2f2484] mb-2">
+        Tecnica – Select Layouts to Show in Overview
+      </h2>
 
       <div className="flex gap-2 mb-2">
         <button
-          onClick={async () => {
-            try {
-              await fetch("/api/layouts/publish", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ date: isoDate, layoutIds: selectedLayouts }),
-              });
-
-              setSelectedLayouts([]);
-              alert("✅ Layouts published for today!");
-            } catch (err) {
-              console.error(err);
-              alert("❌ Failed to publish layouts");
-            }
-          }}
-          className="bg-green-600 text-white px-4 py-2 rounded"
+          onClick={handlePublish}
+          className="bg-green-600 text-white px-4 py-2 rounded disabled:opacity-60"
+          disabled={selectedLayouts.length === 0}
         >
           Publish Selected Layouts
         </button>
 
         <button
-          onClick={async () => {
-            try {
-              await fetch("/api/layouts/unpublish", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ layoutIds: selectedLayouts }),
-              });
-
-              setSelectedLayouts([]);
-              alert("🗑️ Layouts fully unpublished!");
-            } catch (err) {
-              console.error(err);
-              alert("❌ Failed to unpublish layouts");
-            }
-          }}
-          className="bg-red-600 text-white px-4 py-2 rounded"
+          onClick={handleUnpublish}
+          className="bg-red-600 text-white px-4 py-2 rounded disabled:opacity-60"
+          disabled={selectedLayouts.length === 0}
         >
           Unpublish Selected Layouts
         </button>
@@ -75,20 +97,18 @@ export default function TecnicaTab({ layouts }: { layouts: PinyaLayout[] }) {
             <ul className="divide-y">
               {folderLayouts.map((layout) => {
                 const isSelected = selectedLayouts.includes(layout.id);
-                const isPublished = Array.isArray(layout.publishedDates) && layout.publishedDates.length > 0;
+
+                // 🔹 Layout is "published" if published_dates contains "GLOBAL"
+                const isPublished =
+                  Array.isArray(layout.published_dates) &&
+                  layout.published_dates.includes("GLOBAL");
 
                 return (
                   <li
                     key={layout.id}
                     className={`p-3 flex justify-between items-center cursor-pointer transition
                       ${isSelected ? "bg-blue-100" : isPublished ? "bg-green-50" : ""}`}
-                    onClick={() =>
-                      setSelectedLayouts((prev) =>
-                        prev.includes(layout.id)
-                          ? prev.filter((id) => id !== layout.id)
-                          : [...prev, layout.id]
-                      )
-                    }
+                    onClick={() => toggleSelected(layout.id)}
                   >
                     <span>{layout.name}</span>
                     {isPublished ? (

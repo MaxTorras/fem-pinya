@@ -1,4 +1,4 @@
-// src/app/api/layouts/route.ts
+// src\app\api\layouts\route.ts
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { PinyaLayout } from "@/types/pinya";

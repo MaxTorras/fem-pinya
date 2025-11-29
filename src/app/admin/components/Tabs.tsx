@@ -1,25 +1,25 @@
 // src/app/admin/components/Tabs.tsx
 "use client";
 
-type TabType =
-  | "attendance"
-  | "members"
-  | "positions"
-  | "stats"
+import { Dispatch, SetStateAction } from "react";
+
+export type TabType =
   | "tecnica"
   | "votes"
+  | "positions"
   | "events"
-  | "announcements";
+  | "announcements"
+  | "attendance"
+  | "members"
+  | "editpositions";
 
-export default function Tabs({
-  tabs,
-  activeTab,
-  setActiveTab,
-}: {
+type TabsProps = {
   tabs: TabType[];
   activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
-}) {
+  setActiveTab: Dispatch<SetStateAction<TabType>>;
+};
+
+export default function Tabs({ tabs, activeTab, setActiveTab }: TabsProps) {
   return (
     <div className="flex overflow-x-auto gap-2 mb-4 p-1 scrollbar-hide border-b border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
       {tabs.map((tab) => (
@@ -39,15 +39,15 @@ export default function Tabs({
             ? "Members"
             : tab === "positions"
             ? "By Position"
-            : tab === "stats"
-            ? "Stats"
             : tab === "tecnica"
             ? "Tecnica"
             : tab === "votes"
             ? "Votes"
             : tab === "events"
             ? "Events"
-            : "Announcements"}
+            : tab === "announcements"
+            ? "Announcements"
+            : "Edit Positions" /* editpositions */}
         </button>
       ))}
     </div>

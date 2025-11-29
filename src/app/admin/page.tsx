@@ -1,4 +1,4 @@
-// src\app\admin\page.tsx
+// src/app/admin/page.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 "use client";
@@ -11,13 +11,21 @@ import Tabs from "./components/Tabs";
 import AttendanceTab from "./components/AttendanceTab";
 import MembersTab from "./components/MembersTab";
 import PositionsTab from "./components/PositionsTab";
-import StatsTab from "./components/StatsTab";
 import TecnicaTab from "./components/TecnicaTab";
 import VotesTab from "./components/VotesTab";
 import EventsTab from "./components/EventsTab";
-import AnnouncementsTab from "./components/AnnouncementsTab"; // 👈 new import
+import AnnouncementsTab from "./components/AnnouncementsTab";
+import EditPositionsTab from "./components/EditPositionsTab";
 
-type TabType = "attendance" | "members" | "positions" | "stats" | "tecnica" | "votes" | "events" | "announcements";
+type TabType =
+  | "tecnica"
+  | "votes"
+  | "positions"
+  | "events"
+  | "announcements"
+  | "attendance"
+  | "members"
+  | "editpositions";
 
 const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
@@ -54,27 +62,46 @@ export default function AdminPage() {
   }, []);
 
   return (
-    <main className={`${quicksand.className} p-6 max-w-4xl mx-auto bg-white dark:bg-gray-900 min-h-screen`}>
-      <h1 className="text-3xl font-bold text-[#2f2484] dark:text-yellow-400 mb-6">Admin Dashboard</h1>
+    <main
+      className={`${quicksand.className} p-6 max-w-4xl mx-auto bg-white dark:bg-gray-900 min-h-screen`}
+    >
+      <h1 className="text-3xl font-bold text-[#2f2484] dark:text-yellow-400 mb-6">
+        Admin Dashboard
+      </h1>
 
       <Tabs
-  tabs={["attendance", "members", "positions", "stats", "tecnica", "votes", "events", "announcements"]} // ✅ lowercase
-  activeTab={activeTab}
-  setActiveTab={setActiveTab}
-/>
+        tabs={[
+          "tecnica",
+          "votes",
+          "positions",
+          "events",
+          "announcements",
+          "attendance",
+          "members",
+          "editpositions",
+        ]}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
 
       {loading ? (
         <p>Loading...</p>
       ) : (
         <>
-          {activeTab === "attendance" && <AttendanceTab attendance={attendance} />}
-          {activeTab === "members" && <MembersTab members={members} />}
-          {activeTab === "positions" && <PositionsTab attendance={attendance} members={members} />}
-          {activeTab === "stats" && <StatsTab attendance={attendance} members={members} />}
           {activeTab === "tecnica" && <TecnicaTab layouts={layouts} />}
           {activeTab === "votes" && <VotesTab members={members} />}
+          {activeTab === "positions" && (
+            <PositionsTab attendance={attendance} members={members} />
+          )}
           {activeTab === "events" && <EventsTab />}
           {activeTab === "announcements" && <AnnouncementsTab />}
+          {activeTab === "attendance" && (
+            <AttendanceTab attendance={attendance} />
+          )}
+          {activeTab === "members" && (
+            <MembersTab members={members} attendance={attendance} />
+          )}
+          {activeTab === "editpositions" && <EditPositionsTab />}
         </>
       )}
     </main>

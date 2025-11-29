@@ -99,8 +99,9 @@ export default function AdminPage() {
             <AttendanceTab attendance={attendance} />
           )}
           {activeTab === "members" && (
-            <MembersTab members={members} attendance={attendance} />
-          )}
+  <MembersTab members={members} attendance={attendance} />
+)}
+
           {activeTab === "editpositions" && <EditPositionsTab />}
         </>
       )}

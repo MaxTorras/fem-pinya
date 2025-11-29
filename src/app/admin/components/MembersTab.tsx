@@ -13,100 +13,112 @@ export default function MembersTab({
   members: Member[];
   attendance: AttendanceRecord[];
 }) {
-  const attendanceByMember = useMemo(() => {
+  // ✅ 1) DEDUPE MEMBERS BY NICKNAME
+  const uniqueMembers = useMemo(() => {
+    const seen = new Set<string>();
+    const result: Member[] = [];
+
+    members.forEach((m) => {
+      const key = m.nickname.trim().toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      result.push(m);
+    });
+
+    return result;
+  }, [members]);
+
+  // ✅ 2) BUILD STATS USING uniqueMembers + timestamp
+  const stats = useMemo(() => {
     const byMember: Record<string, string[]> = {};
 
     attendance.forEach((r) => {
-      if (!byMember[r.nickname]) byMember[r.nickname] = [];
-      byMember[r.nickname].push(r.date);
+      const key = r.nickname;
+      const dayKey = new Date(r.timestamp).toISOString().slice(0, 10); // YYYY-MM-DD
+
+      if (!byMember[key]) byMember[key] = [];
+      if (!byMember[key].includes(dayKey)) {
+        byMember[key].push(dayKey);
+      }
     });
 
-    return Object.entries(byMember)
-      .map(([nickname, dates]) => {
-        const sorted = dates
+    return uniqueMembers
+      .map((m) => {
+        const days = byMember[m.nickname] || [];
+
+        if (days.length === 0) {
+          return {
+            nickname: m.nickname,
+            name: m.name,
+            surname: m.surname,
+            count: 0,
+            streak: 0,
+          };
+        }
+
+        const sorted = days
           .map((d) => new Date(d))
           .sort((a, b) => a.getTime() - b.getTime());
 
-        let streak = 1;
+        let currentStreak = 1;
         let bestStreak = 1;
 
         for (let i = 1; i < sorted.length; i++) {
-          const diff =
+          const diffDays =
             (sorted[i].getTime() - sorted[i - 1].getTime()) /
             (1000 * 3600 * 24);
 
-          if (diff >= 6 && diff <= 8) {
-            streak++;
+          // weekly(ish): keep streak if within 9 days
+          if (diffDays <= 9) {
+            currentStreak++;
           } else {
-            streak = 1;
+            currentStreak = 1;
           }
-          bestStreak = Math.max(bestStreak, streak);
+          bestStreak = Math.max(bestStreak, currentStreak);
         }
 
-        return { nickname, count: dates.length, currentStreak: bestStreak };
+        return {
+          nickname: m.nickname,
+          name: m.name,
+          surname: m.surname,
+          count: days.length,
+          streak: bestStreak,
+        };
       })
       .sort((a, b) => b.count - a.count);
-  }, [attendance]);
+  }, [attendance, uniqueMembers]);
 
   return (
-    <div className="space-y-6">
-      {/* 🧑‍🤝‍🧑 Basic member list */}
-      <section>
-        <h2 className="text-lg font-semibold text-[#2f2484] mb-2">
-          Members
-        </h2>
-        <ul className="border-2 border-[#2f2484] rounded divide-y">
-          {members.map((m) => (
-            <li key={m.nickname} className="p-3">
-              <span className="font-semibold">{m.nickname}</span>
-              {(m.name || m.surname) && (
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold text-[#2f2484] mb-2">
+        Members & Attendance
+      </h2>
+
+      <ul className="border-2 border-[#2f2484] rounded divide-y">
+        {stats.map(({ nickname, name, surname, count, streak }, index) => {
+          const showFire = streak > 3; // 🔥 4+ consecutive weeks
+
+          return (
+            <li
+              key={`${nickname}-${index}`} // ✅ unique even if something slips through
+              className="p-3 flex justify-between items-center dark:text-gray-100"
+            >
+              <span>
+                {`${name || ""} ${surname || ""}`.trim() || nickname}
                 <span className="text-gray-500 text-sm ml-2">
-                  ({m.name || ""} {m.surname || ""})
+                  ({nickname})
                 </span>
-              )}
+              </span>
+              <div className="flex items-center gap-3">
+                <span className="font-semibold">{count}x</span>
+                {showFire && (
+                  <span className="text-orange-500 text-lg">🔥</span>
+                )}
+              </div>
             </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* 📊 Attendance stats */}
-      <section>
-        <h2 className="text-lg font-semibold text-[#2f2484] mb-2">
-          Attendance Stats
-        </h2>
-        <ul className="border-2 border-[#2f2484] rounded divide-y">
-          {attendanceByMember.map(({ nickname, count, currentStreak }) => {
-            const member = members.find(
-              (m) => m.nickname.toLowerCase() === nickname.toLowerCase()
-            );
-            const showFire = currentStreak >= 3;
-
-            return (
-              <li
-                key={nickname}
-                className="p-3 flex justify-between items-center dark:text-gray-100"
-              >
-                <span>
-                  {member
-                    ? `${member.name || ""} ${member.surname || ""}`.trim()
-                    : nickname}
-                  <span className="text-gray-500 text-sm ml-2">
-                    ({nickname})
-                  </span>
-                </span>
-                <div className="flex items-center gap-3">
-                  <span className="font-semibold">{count}x</span>
-                  {showFire && (
-                    <span className="text-orange-500 text-lg">
-                      🔥 ↑ {currentStreak}
-                    </span>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+          );
+        })}
+      </ul>
     </div>
   );
 }

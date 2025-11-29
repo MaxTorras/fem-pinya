@@ -1,3 +1,4 @@
+// src/app/admin/components/AnnouncementsTab.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,17 +9,18 @@ type Announcement = {
   title: string;
   message: string;
   created_at: string;
+  link?: string | null;
 };
 
 export default function AnnouncementsTab() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
-  const [pollQuestion, setPollQuestion] = useState(""); // 🗳️ new
-  const [pollOptions, setPollOptions] = useState(""); // comma-separated
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState("");
+  const [link, setLink] = useState(""); // 🔗 new optional link
   const [loading, setLoading] = useState(false);
 
-  // ✅ Fetch announcements from Supabase
   const loadAnnouncements = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -26,7 +28,7 @@ export default function AnnouncementsTab() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!error && data) setAnnouncements(data);
+    if (!error && data) setAnnouncements(data as Announcement[]);
     setLoading(false);
   };
 
@@ -34,16 +36,21 @@ export default function AnnouncementsTab() {
     loadAnnouncements();
   }, []);
 
-  // ✅ Add new announcement (with optional poll)
   const addAnnouncement = async () => {
     if (!title.trim() || !message.trim()) return;
 
     setLoading(true);
 
-    // Step 1: create announcement
+    // 1) Create announcement (with optional link)
     const { data: inserted, error: annError } = await supabase
       .from("announcements")
-      .insert([{ title, message }])
+      .insert([
+        {
+          title,
+          message,
+          link: link.trim() || null, // 🔗 optional
+        },
+      ])
       .select();
 
     if (annError || !inserted?.length) {
@@ -52,9 +59,9 @@ export default function AnnouncementsTab() {
       return;
     }
 
-    const newAnnouncement = inserted[0];
+    const newAnnouncement = inserted[0] as Announcement;
 
-    // Step 2: if poll details provided, create poll
+    // 2) Optional poll
     if (pollQuestion.trim() && pollOptions.trim()) {
       const optionsArray = pollOptions
         .split(",")
@@ -72,17 +79,17 @@ export default function AnnouncementsTab() {
       if (pollError) alert("Error adding poll: " + pollError.message);
     }
 
-    // Step 3: reset form
+    // 3) Reset form
     setTitle("");
     setMessage("");
     setPollQuestion("");
     setPollOptions("");
+    setLink(""); // 🔗 reset
 
-    await loadAnnouncements(); // refresh list
+    await loadAnnouncements();
     setLoading(false);
   };
 
-  // ✅ Delete announcement (auto deletes poll + votes via cascade)
   const deleteAnnouncement = async (id: string) => {
     const { error } = await supabase.from("announcements").delete().eq("id", id);
     if (error) alert("Error deleting: " + error.message);
@@ -111,7 +118,7 @@ export default function AnnouncementsTab() {
           className="w-full border rounded-lg p-2 h-24 focus:ring-2 focus:ring-[#2f2484]"
         />
 
-        {/* 🗳️ Optional poll fields */}
+        {/* Optional poll fields */}
         <input
           type="text"
           placeholder="Poll question (optional)"
@@ -124,6 +131,15 @@ export default function AnnouncementsTab() {
           placeholder="Poll options (comma-separated, e.g. Yes,No,Maybe)"
           value={pollOptions}
           onChange={(e) => setPollOptions(e.target.value)}
+          className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-[#2f2484]"
+        />
+
+        {/* 🔗 Optional link field */}
+        <input
+          type="text"
+          placeholder="Link (optional, e.g. https://...)"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
           className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-[#2f2484]"
         />
 
@@ -152,6 +168,18 @@ export default function AnnouncementsTab() {
                   <p className="text-gray-700 whitespace-pre-line dark:text-gray-200">
                     {a.message}
                   </p>
+
+                  {a.link && (
+                    <a
+                      href={a.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 underline mt-1 inline-block"
+                    >
+                      Open link
+                    </a>
+                  )}
+
                   <p className="text-xs text-gray-400 mt-1">
                     {new Date(a.created_at).toLocaleString()}
                   </p>

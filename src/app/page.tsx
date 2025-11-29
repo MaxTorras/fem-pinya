@@ -1,3 +1,4 @@
+// src\app\page.tsx
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -24,6 +25,7 @@ type Announcement = {
   title: string;
   message: string;
   created_at: string;
+  link?: string | null;
   polls?: Poll[];
 };
 
@@ -163,17 +165,26 @@ export default function HomePage() {
     <main className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center space-y-6 bg-gray-50 text-gray-900">
       {/* 🟨 Top Buttons */}
       <div className="flex flex-col sm:flex-row gap-4 mt-4 mb-4">
-        <Link href="/check-in">
-          <button className="bg-yellow-400 hover:bg-yellow-300 text-[#2f2484] font-semibold px-6 py-3 rounded-full shadow-md transition w-full sm:w-auto">
-            Check In Now
-          </button>
-        </Link>
-        <Link href="/main">
-          <button className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-6 py-3 rounded-full shadow-md transition w-full sm:w-auto">
-            Go to Events
-          </button>
-        </Link>
-      </div>
+  <Link href="/check-in">
+    <button className="bg-yellow-400 hover:bg-yellow-300 text-[#2f2484] font-semibold px-6 py-3 rounded-full shadow-md transition w-full sm:w-auto">
+      Check In Now
+    </button>
+  </Link>
+
+  <Link href="/main">
+    <button className="bg-purple-600 hover:bg-purple-500 text-white font-semibold px-6 py-3 rounded-full shadow-md transition w-full sm:w-auto">
+      Go to Events
+    </button>
+  </Link>
+
+  {/* 🔥 NEW BUTTON 🔥 */}
+  <Link href="/pinyes-overview">
+    <button className="bg-green-600 hover:bg-green-500 text-white font-semibold px-6 py-3 rounded-full shadow-md transition w-full sm:w-auto">
+      View Pinyes
+    </button>
+  </Link>
+</div>
+
 
       {/* 📢 Announcements */}
       <div className="bg-white rounded-2xl shadow-lg p-6 max-w-md w-full border-l-4 border-[#2f2484]">
@@ -183,13 +194,25 @@ export default function HomePage() {
           <p className="text-gray-500">Loading...</p>
         ) : announcements.length > 0 ? (
           <ul className="space-y-6 text-left">
-            {announcements.map((a) => (
-              <li key={a.id} className="border-b border-gray-200 pb-4">
-                <h3 className="font-semibold text-[#2f2484]">{a.title}</h3>
-                <p className="text-gray-700 text-sm whitespace-pre-line">{a.message}</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {new Date(a.created_at).toLocaleDateString()}
-                </p>
+  {announcements.map((a) => (
+    <li key={a.id} className="border-b border-gray-200 pb-4">
+      <h3 className="font-semibold text-[#2f2484]">{a.title}</h3>
+      <p className="text-gray-700 text-sm whitespace-pre-line">{a.message}</p>
+
+      {a.link && (
+        <a
+          href={a.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm text-blue-600 underline mt-1 inline-block"
+        >
+          Open link
+        </a>
+      )}
+
+      <p className="text-xs text-gray-400 mt-1">
+        {new Date(a.created_at).toLocaleDateString()}
+      </p>
 
                 {/* 🗳️ Poll Section */}
                 {a.polls && a.polls.length > 0 && (

@@ -214,7 +214,7 @@ export default function PinyesOverviewPage() {
             {menuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
           <h1 className="font-semibold text-lg md:text-xl mx-auto md:mx-0">
-            Pinya Overview
+            Pinyes Overview
           </h1>
         </div>
 

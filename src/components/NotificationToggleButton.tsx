@@ -16,6 +16,7 @@ export default function NotificationToggleButton() {
     // Check if user already subscribed
     navigator.serviceWorker.ready.then((reg) => {
       reg.pushManager.getSubscription().then((sub) => {
+        console.log("Existing subscription:", sub);
         if (sub) setEnabled(true);
       });
     });
@@ -33,6 +34,7 @@ export default function NotificationToggleButton() {
       if (!enabled) {
         // Enable notifications
         const permission = await Notification.requestPermission();
+        console.log("Notification permission:", permission);
         if (permission !== "granted") {
           alert("Permission denied!");
           return;
@@ -45,6 +47,8 @@ export default function NotificationToggleButton() {
           ),
         });
 
+        console.log("New subscription object:", subscription);
+
         // Save subscription to Supabase
         const res = await fetch("/api/subscribe", {
           method: "POST",
@@ -52,22 +56,32 @@ export default function NotificationToggleButton() {
           body: JSON.stringify(subscription),
         });
 
+        const data = await res.json();
+        console.log("Response from /api/subscribe:", data);
+
         if (!res.ok) throw new Error("Failed to save subscription");
+
         setEnabled(true);
         alert("Notifications enabled!");
-
       } else {
         // Disable notifications
         const subscription = await registration.pushManager.getSubscription();
+        console.log("Subscription to unsubscribe:", subscription);
+
         if (subscription) {
           await subscription.unsubscribe();
 
           // Delete from Supabase
-          await fetch("/api/unsubscribe", {
+          const res = await fetch("/api/unsubscribe", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ endpoint: subscription.endpoint }),
           });
+
+          const data = await res.json();
+          console.log("Response from /api/unsubscribe:", data);
+
+          if (!res.ok) throw new Error("Failed to remove subscription");
 
           setEnabled(false);
           alert("Notifications disabled!");

@@ -9,7 +9,7 @@ export default function PushNotifications() {
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY! // must be server key to insert safely
     );
 
     const subscribeUserToPush = async () => {
@@ -20,22 +20,24 @@ export default function PushNotifications() {
 
       try {
         const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(
-            process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-          ),
-        });
+        // Inside subscribeUserToPush
+const subscription = await registration.pushManager.subscribe({
+  userVisibleOnly: true,
+  applicationServerKey: urlBase64ToUint8Array(
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+  ),
+});
 
-        console.log("User subscribed to push:", subscription);
+// Send to your server
+const res = await fetch("/api/subscribe", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(subscription.toJSON()), // send plain object
+});
 
-        // ✅ Save subscription to Supabase
-        const { error } = await supabase
-          .from("push_subscriptions")
-          .insert([{ ...subscription }]); // make sure your table columns match the object
+if (!res.ok) throw new Error("Failed to save subscription");
+console.log("Subscription sent to server ✅");
 
-        if (error) console.error("Failed to save subscription:", error);
-        else console.log("Subscription saved to Supabase ✅");
       } catch (err) {
         console.error("Push subscription failed:", err);
       }

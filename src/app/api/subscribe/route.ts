@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Supabase client
-const supabase = createClient(
+const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -11,20 +10,22 @@ export async function POST(req: NextRequest) {
   try {
     const subscription = await req.json();
 
-    // Avoid duplicates
-    const { data: exists } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("push_subscriptions")
-      .select("*")
-      .eq("endpoint", subscription.endpoint)
-      .single();
+      .insert([{
+        endpoint: subscription.endpoint,
+        keys: subscription.keys,
+        created_at: new Date().toISOString(),
+      }]);
 
-    if (!exists) {
-      await supabase.from("push_subscriptions").insert([subscription]);
+    if (error) {
+      console.error("Failed to save subscription:", JSON.stringify(error, null, 2));
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data });
   } catch (err: any) {
-    console.error("Subscribe error:", err);
+    console.error(err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }

@@ -1,4 +1,3 @@
-// src/components/PushNotifications.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -12,45 +11,46 @@ function urlBase64ToUint8Array(base64String: string) {
 
 export default function PushNotifications() {
   useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
-    // 1️⃣ Register service worker
+    // Register service worker
     navigator.serviceWorker
-      .register("/sw.js")
+      .register("/service-worker.js")
       .then(() => console.log("Service Worker registered"))
       .catch((err) => console.error("SW registration failed:", err));
 
-    // 2️⃣ Subscribe user to push
-    const subscribeUserToPush = async () => {
-      if (!("Notification" in window)) return;
-
-      if (Notification.permission === "granted") return;
-
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") return;
-
+    // Subscribe user
+    const subscribeUser = async () => {
       try {
         const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(
-            process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
-          ),
-        });
-        console.log("User subscribed to push:", subscription);
 
-       // Send subscription to backend
-  await fetch("/api/subscribe", {
-    method: "POST",
-    body: JSON.stringify(subscription),
-    headers: { "Content-Type": "application/json" },
-  });
-} catch (err) {
-  console.error("Push subscription failed:", err);
-}
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          const permission = await Notification.requestPermission();
+          if (permission !== "granted") return;
+
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(
+              process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
+            ),
+          });
+        }
+
+        // Send subscription to backend
+        await fetch("/api/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(subscription),
+        });
+
+        console.log("User is subscribed to push notifications");
+      } catch (err) {
+        console.error("Push subscription failed:", err);
+      }
     };
 
-    subscribeUserToPush();
+    subscribeUser();
   }, []);
 
   return null;

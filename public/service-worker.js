@@ -1,19 +1,15 @@
-// public/service-worker.js
-
 self.addEventListener("push", (event) => {
   const data = event.data?.json() || {};
   const title = data.title || "Fem Pineapple";
   const options = {
-    body: data.message || "You have a new notification!",
+    body: data.body || "You have a new notification!",
     icon: "/icons/icon-192x192.png",
     badge: "/icons/icon-192x192.png",
     data: data.url || "/",
   };
-
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Optional: open notification click
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   event.waitUntil(

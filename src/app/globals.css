@@ -38,3 +38,18 @@ html, body {
 .animate-popIn {
   animation: popIn 0.2s ease-out;
 }
+/* Slide up + fade in animation */
+@keyframes slideUpFade {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0%);
+    opacity: 1;
+  }
+}
+
+.animate-slideUpFade {
+  animation: slideUpFade 0.4s ease-out;
+}

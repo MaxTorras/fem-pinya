@@ -6,11 +6,12 @@ export default function SendNotificationButton() {
       const res = await fetch("/api/send-notification", {
         method: "POST",
         body: JSON.stringify({
-          title: "Test Notification",
-          message: "This is a test notification",
-          url: "/", // optional: where user will be redirected
+          title: "Fem Pineapple",
+          message: "This is a test notification!",
         }),
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
       if (!res.ok) throw new Error("Failed to send notification");
@@ -23,7 +24,7 @@ export default function SendNotificationButton() {
   return (
     <button
       onClick={sendNotification}
-      className="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 transition"
+      className="bg-white text-[#2f2484] px-3 py-1 rounded hover:opacity-80 transition"
     >
       Send Notification
     </button>

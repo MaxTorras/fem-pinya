@@ -37,58 +37,73 @@ export default function AnnouncementsTab() {
   }, []);
 
   const addAnnouncement = async () => {
-    if (!title.trim() || !message.trim()) return;
+  if (!title.trim() || !message.trim()) return;
 
-    setLoading(true);
+  setLoading(true);
 
-    // 1) Create announcement (with optional link)
-    const { data: inserted, error: annError } = await supabase
-      .from("announcements")
-      .insert([
-        {
-          title,
-          message,
-          link: link.trim() || null, // 🔗 optional
-        },
-      ])
-      .select();
+  // 1) Create announcement (with optional link)
+  const { data: inserted, error: annError } = await supabase
+    .from("announcements")
+    .insert([
+      {
+        title,
+        message,
+        link: link.trim() || null,
+      },
+    ])
+    .select();
 
-    if (annError || !inserted?.length) {
-      alert("Error adding announcement: " + (annError?.message || "unknown"));
-      setLoading(false);
-      return;
-    }
-
-    const newAnnouncement = inserted[0] as Announcement;
-
-    // 2) Optional poll
-    if (pollQuestion.trim() && pollOptions.trim()) {
-      const optionsArray = pollOptions
-        .split(",")
-        .map((opt) => opt.trim())
-        .filter(Boolean);
-
-      const { error: pollError } = await supabase.from("polls").insert([
-        {
-          announcement_id: newAnnouncement.id,
-          question: pollQuestion,
-          options: optionsArray,
-        },
-      ]);
-
-      if (pollError) alert("Error adding poll: " + pollError.message);
-    }
-
-    // 3) Reset form
-    setTitle("");
-    setMessage("");
-    setPollQuestion("");
-    setPollOptions("");
-    setLink(""); // 🔗 reset
-
-    await loadAnnouncements();
+  if (annError || !inserted?.length) {
+    alert("Error adding announcement: " + (annError?.message || "unknown"));
     setLoading(false);
-  };
+    return;
+  }
+
+  const newAnnouncement = inserted[0] as Announcement;
+
+  // 2) Optional poll (unchanged)
+  if (pollQuestion.trim() && pollOptions.trim()) {
+    const optionsArray = pollOptions
+      .split(",")
+      .map((opt) => opt.trim())
+      .filter(Boolean);
+
+    const { error: pollError } = await supabase.from("polls").insert([
+      {
+        announcement_id: newAnnouncement.id,
+        question: pollQuestion,
+        options: optionsArray,
+      },
+    ]);
+
+    if (pollError) alert("Error adding poll: " + pollError.message);
+  }
+
+  // ✅ 3) Send notifications to all subscribers
+  try {
+    await fetch("/api/send-notification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: `New Announcement: ${newAnnouncement.title}`,
+        message: newAnnouncement.message,
+      }),
+    });
+  } catch (err) {
+    console.error("Failed to send push notifications:", err);
+  }
+
+  // 4) Reset form
+  setTitle("");
+  setMessage("");
+  setPollQuestion("");
+  setPollOptions("");
+  setLink(""); 
+
+  await loadAnnouncements();
+  setLoading(false);
+};
+
 
   const deleteAnnouncement = async (id: string) => {
     const { error } = await supabase.from("announcements").delete().eq("id", id);

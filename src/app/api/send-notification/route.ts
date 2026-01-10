@@ -33,26 +33,32 @@ export async function POST(req: NextRequest) {
 
     const payload = JSON.stringify({ title, body: message });
 
-    // Send notifications safely
-    await Promise.all(
-      subscriptions.map((sub) => {
-        // Parse keys if stored as JSON string
-        const keys =
-          typeof sub.keys === "string" ? JSON.parse(sub.keys) : sub.keys;
+await Promise.all(
+  subscriptions.map(async (sub) => {
+    try {
+      const keys = typeof sub.keys === "string" ? JSON.parse(sub.keys) : sub.keys;
+      if (!sub.endpoint || !keys?.p256dh || !keys?.auth) return;
 
-        return webpush
-          .sendNotification(
-            {
-              endpoint: sub.endpoint,
-              keys: { p256dh: keys.p256dh, auth: keys.auth },
-            },
-            payload
-          )
-          .catch((err: unknown) => {
-            console.error("Failed to send notification:", (err as Error).message || err);
-          });
-      })
-    );
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth } },
+        payload
+      );
+    } catch (err: any) {
+      console.error("Failed to send notification:", err.statusCode || err.message || err);
+
+      // Remove stale subscriptions (410 Gone or 404 Not Found)
+      if (err.statusCode === 410 || err.statusCode === 404) {
+        await supabaseAdmin
+          .from("push_subscriptions")
+          .delete()
+          .eq("id", sub.id);
+        console.log("Deleted stale subscription:", sub.id);
+      }
+    }
+  })
+);
+
+
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

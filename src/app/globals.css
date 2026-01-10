@@ -1,48 +1,18 @@
 /* src\app\globals.css */
 @import "tailwindcss";
 
-/* Default (light) */
+/* Light mode only */
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
 /* Smooth theme transition */
-html {
-  transition: background-color 0.25s ease, color 0.25s ease;
-}
-
-body {
-  transition: background-color 0.25s ease, color 0.25s ease;
-}
-/* System dark fallback */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-/* Explicit light mode */
-html.light {
-  color-scheme: light;
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-/* Explicit dark mode */
-html.dark {
-  color-scheme: dark;
-  --background: #0a0a0a;
-  --foreground: #ededed;
-}
-
-html,
-body {
+html, body {
   background-color: var(--background);
   color: var(--foreground);
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
-
 
 /* Hide scrollbars on tab bar (keeps it scrollable) */
 .scrollbar-hide::-webkit-scrollbar {
@@ -52,6 +22,8 @@ body {
   -ms-overflow-style: none; /* IE/Edge */
   scrollbar-width: none; /* Firefox */
 }
+
+/* Animations */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

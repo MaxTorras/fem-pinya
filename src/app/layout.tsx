@@ -5,7 +5,7 @@ import AdminKeyButton from "@/components/AdminKeyButton";
 import { Quicksand } from "next/font/google";
 import { UserProvider } from "@/context/UserContext";
 import HeaderClient from "@/components/HeaderClient";
-import ThemeToggle from "@/components/ThemeToggle";
+import InstallPrompt from "@/components/InstallPrompt";
 
 const quicksand = Quicksand({
   subsets: ["latin"],
@@ -71,7 +71,6 @@ export default function RootLayout({
 
             {/* Right side actions */}
             <div className="flex items-center gap-3">
-              <ThemeToggle />
               <HeaderClient />
             </div>
           </header>
@@ -81,6 +80,7 @@ export default function RootLayout({
           <main className="pt-20 px-4 flex-1 overflow-y-auto">
             {children}
           </main>
+          <InstallPrompt />
         </UserProvider>
       </body>
     </html>

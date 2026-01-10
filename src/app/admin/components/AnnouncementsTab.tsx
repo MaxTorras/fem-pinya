@@ -82,13 +82,15 @@ export default function AnnouncementsTab() {
   // ✅ 3) Send notifications to all subscribers
   try {
     await fetch("/api/send-notification", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: `New Announcement: ${newAnnouncement.title}`,
-        message: newAnnouncement.message,
-      }),
-    });
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    title: `New Announcement: ${newAnnouncement.title}`,
+    message: newAnnouncement.message,
+    url: newAnnouncement.link || "",
+  }),
+});
+
   } catch (err) {
     console.error("Failed to send push notifications:", err);
   }
@@ -114,7 +116,7 @@ export default function AnnouncementsTab() {
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md">
       <h2 className="text-2xl font-semibold text-[#2f2484] dark:text-yellow-400 mb-4">
-        📢 Announcements
+        Announcements
       </h2>
 
       {/* Create new announcement */}

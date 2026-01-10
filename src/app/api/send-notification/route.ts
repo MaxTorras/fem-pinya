@@ -20,7 +20,7 @@ webpush.setVapidDetails(
 
 export async function POST(req: NextRequest) {
   try {
-    const { title, message } = await req.json();
+    const { title, message, url } = await req.json();
 
     // Fetch subscriptions from Supabase
     const { data: subscriptions, error } = await supabaseAdmin
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     if (!subscriptions || subscriptions.length === 0)
       return NextResponse.json({ success: false, error: "No subscriptions found" }, { status: 400 });
 
-    const payload = JSON.stringify({ title, body: message });
+    const payload = JSON.stringify({ title, body: message, url });
 
 await Promise.all(
   subscriptions.map(async (sub) => {

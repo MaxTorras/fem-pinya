@@ -7,6 +7,14 @@
   --foreground: #171717;
 }
 
+/* Smooth theme transition */
+html {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+body {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
 /* System dark fallback */
 @media (prefers-color-scheme: dark) {
   :root {

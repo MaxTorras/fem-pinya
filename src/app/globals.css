@@ -1,10 +1,13 @@
+/* src\app\globals.css */
 @import "tailwindcss";
 
+/* Default (light) */
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
+/* System dark fallback */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -12,15 +15,26 @@
   }
 }
 
-html {
+/* Explicit light mode */
+html.light {
   color-scheme: light;
-  background-color: white;
+  --background: #ffffff;
+  --foreground: #171717;
 }
+
+/* Explicit dark mode */
+html.dark {
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
+html,
 body {
-  background-color: white !important;
-  color: #2f2484;
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--background);
+  color: var(--foreground);
 }
+
 
 /* Hide scrollbars on tab bar (keeps it scrollable) */
 .scrollbar-hide::-webkit-scrollbar {

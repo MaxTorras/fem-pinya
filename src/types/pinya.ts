@@ -9,6 +9,9 @@ export type Member = {
   position2?: string | null;  // secondary/fallback position
   isAdmin?: boolean;
   missingPosition?: boolean; // true if position is empty
+  // ✅ new fields for colla
+  colla?: string;
+  collaColor?: string;
 };
 
 export type PinyaPosition = {

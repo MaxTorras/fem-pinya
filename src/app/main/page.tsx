@@ -79,7 +79,6 @@ export default function MainPage() {
   const startOfWeek = selectedDate.startOf("isoWeek");
   const daysOfWeek = [...Array(7)].map((_, i) => startOfWeek.add(i, "day"));
 
-  // ✅ FIXED: use isoWeek for consistent Monday-based weeks
   const startOfMonth = selectedDate.startOf("month");
   const endOfMonth = selectedDate.endOf("month");
   const daysInMonth: dayjs.Dayjs[] = [];
@@ -248,67 +247,75 @@ export default function MainPage() {
         {loading ? (
           <p>Loading events...</p>
         ) : upcomingEvents.length > 0 ? (
-          upcomingEvents.map((event) => (
-            <div
-              key={event.id}
-              className="border-l-4 border-[#FFD700] pl-3 py-2 hover:bg-yellow-50 rounded transition mb-2 flex justify-between items-center"
-            >
-              <div>
-                <p className="font-medium text-[#2f2484]">{event.title}</p>
-                <p className="text-sm text-gray-600">
-                  {dayjs(event.date).format("dddd, MMM D")} – {event.time}
-                </p>
+          upcomingEvents.map((event) => {
+            const isPerformance = event.folder === "Performances";
 
-                {event.google_form && (
-                  <a
-                    href={event.google_form}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 underline mt-1 inline-block"
-                  >
-                    Open Form
-                  </a>
+            return (
+              <div
+                key={event.id}
+                className={`border-l-4 pl-3 py-2 rounded transition mb-2 flex justify-between items-center ${
+                  isPerformance
+                    ? "border-[#2f2484] bg-[#2f2484]/5 ring-1 ring-[#2f2484]/30"
+                    : "border-[#FFD700] hover:bg-yellow-50"
+                }`}
+              >
+                <div>
+                  <p className="font-medium text-[#2f2484]">{event.title}</p>
+                  <p className="text-sm text-gray-600">
+                    {dayjs(event.date).format("dddd, MMM D")} – {event.time}
+                  </p>
+
+                  {event.google_form && (
+                    <a
+                      href={event.google_form}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 underline mt-1 inline-block"
+                    >
+                      Open Form
+                    </a>
+                  )}
+                </div>
+
+                {user && (
+                  <div className="flex flex-col gap-2 ml-4">
+                    <button
+                      onClick={() => handleVote(event.id, "coming")}
+                      className={`p-1 rounded-full ${
+                        votes[event.id] === "coming"
+                          ? "text-green-500"
+                          : "text-gray-400"
+                      } hover:text-green-500 transition`}
+                    >
+                      <CheckCircle size={24} />
+                    </button>
+
+                    <button
+                      onClick={() => handleVote(event.id, "late")}
+                      className={`p-1 rounded-full ${
+                        votes[event.id] === "late"
+                          ? "text-yellow-500"
+                          : "text-gray-400"
+                      } hover:text-yellow-500 transition`}
+                    >
+                      <Clock size={24} />
+                    </button>
+
+                    <button
+                      onClick={() => handleVote(event.id, "not coming")}
+                      className={`p-1 rounded-full ${
+                        votes[event.id] === "not coming"
+                          ? "text-red-500"
+                          : "text-gray-400"
+                      } hover:text-red-500 transition`}
+                    >
+                      <XCircle size={24} />
+                    </button>
+                  </div>
                 )}
               </div>
-
-              {user && (
-                <div className="flex flex-col gap-2 ml-4">
-                  <button
-                    onClick={() => handleVote(event.id, "coming")}
-                    className={`p-1 rounded-full ${
-                      votes[event.id] === "coming"
-                        ? "text-green-500"
-                        : "text-gray-400"
-                    } hover:text-green-500 transition`}
-                  >
-                    <CheckCircle size={24} />
-                  </button>
-
-                  <button
-                    onClick={() => handleVote(event.id, "late")}
-                    className={`p-1 rounded-full ${
-                      votes[event.id] === "late"
-                        ? "text-yellow-500"
-                        : "text-gray-400"
-                    } hover:text-yellow-500 transition`}
-                  >
-                    <Clock size={24} />
-                  </button>
-
-                  <button
-                    onClick={() => handleVote(event.id, "not coming")}
-                    className={`p-1 rounded-full ${
-                      votes[event.id] === "not coming"
-                        ? "text-red-500"
-                        : "text-gray-400"
-                    } hover:text-red-500 transition`}
-                  >
-                    <XCircle size={24} />
-                  </button>
-                </div>
-              )}
-            </div>
-          ))
+            );
+          })
         ) : (
           <p className="text-sm text-gray-500 italic">No upcoming events</p>
         )}

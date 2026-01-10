@@ -5,18 +5,28 @@ import { Member } from "@/types/pinya";
 import { useDrop, useDrag } from "react-dnd";
 import { useRef, useEffect, useState } from "react";
 
+// Helper for contrast
+const getContrastColor = (hexColor: string) => {
+  if (!hexColor?.startsWith("#") || hexColor.length !== 7) return "#fff";
+  const r = parseInt(hexColor.slice(1, 3), 16);
+  const g = parseInt(hexColor.slice(3, 5), 16);
+  const b = parseInt(hexColor.slice(5, 7), 16);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness > 150 ? "#000" : "#fff";
+};
+
 type PinyaNodeProps = {
   data: {
     id: string;
     label: string;
-    member?: Member;
+    member?: Member & { colla?: string; collaColor?: string }; // include colla info
     rotation?: number;
     onRotate?: () => void;
     onAssign?: (member: Member) => void;
     onRemove?: () => void;
     checkedIn?: boolean;
-    highlight?: boolean; // ✅ highlight search match
-    showRotateButton?: boolean; // ✅ new prop
+    highlight?: boolean;
+    showRotateButton?: boolean;
   };
 };
 
@@ -57,52 +67,41 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
     }
   }, [drag, drop]);
 
-  // Determine background and text color
-  // Determine background and text color
-let bgColor = "bg-gray-400";
-let textColor = "text-white";
+  // --- Background & text color ---
+  const bgStyle: React.CSSProperties = {};
+  const textStyle: React.CSSProperties = {};
 
-if (data.highlight) {
-  bgColor = "bg-yellow-500"; // gold highlight if searched
-  textColor = "text-black";
-} else if (data.member) {
-  if (data.member.position?.toLowerCase() === "new") {
-    bgColor = "bg-green-500";
-  } else if (data.label === "Baix") {
-    bgColor = "bg-red-600";
-  } else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
-    bgColor = "bg-yellow-400";
-    textColor = "text-black";
+  if (data.member?.collaColor) {
+    bgStyle.backgroundColor = data.member.collaColor;
+    textStyle.color = getContrastColor(data.member.collaColor);
+  } else if (data.highlight) {
+    bgStyle.backgroundColor = "#facc15"; // yellow-500
+    textStyle.color = "#000";
+  } else if (data.member) {
+    if (data.member.position?.toLowerCase() === "new") bgStyle.backgroundColor = "#22c55e"; // green-500
+    else if (data.label === "Baix") bgStyle.backgroundColor = "#dc2626"; // red-600
+    else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
+      bgStyle.backgroundColor = "#facc15"; // yellow-400
+      textStyle.color = "#000";
+    } else bgStyle.backgroundColor = "#3b82f6"; // blue-500
   } else {
-    bgColor = "bg-blue-500";
-  }
-} else {
-  if (data.label === "Baix") bgColor = "bg-red-600";
-  else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
-    bgColor = "bg-yellow-400";
-    textColor = "text-black";
-  }
-}
-
-
-  // ✅ Override background if highlighted
-  if (data.highlight) {
-    bgColor = "bg-yellow-500"; // gold-ish color
-    textColor = "text-black";
+    if (data.label === "Baix") bgStyle.backgroundColor = "#dc2626";
+    else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
+      bgStyle.backgroundColor = "#facc15";
+      textStyle.color = "#000";
+    } else bgStyle.backgroundColor = "#9ca3af"; // gray-400
+    textStyle.color = "#fff";
   }
 
-  // Smaller font for compact roles
+  // --- Font size ---
   const smallRoles = ["Agulla", "Crossa", "Contrafort", "Tap"];
   const baseFont = smallRoles.includes(data.label) ? 12 : 14;
 
-  // Auto-resize nickname if needed
   useEffect(() => {
     const el = textRef.current;
     if (!el) return;
-
     const maxWidth = 65;
     let current = baseFont;
-
     el.style.fontSize = `${current}px`;
     while (el.scrollWidth > maxWidth && current > 8) {
       current -= 1;
@@ -111,10 +110,20 @@ if (data.highlight) {
     setFontSize(current);
   }, [data.member?.nickname, data.label]);
 
+  // --- Member display name with colla initials ---
+  const displayName = data.member
+    ? `${data.member.nickname}${
+        data.member.colla
+          ? ` (${data.member.colla.split(" ").map((w) => w[0]).join("")})`
+          : ""
+      }`
+    : data.label;
+
   return (
     <div
       ref={ref}
       style={{
+        ...bgStyle,
         transform: `rotate(${rotation}deg)`,
         transformOrigin: "center center",
         border: isOver && canDrop
@@ -127,28 +136,28 @@ if (data.highlight) {
           : "none",
         opacity: isDragging ? 0.5 : 1,
       }}
-      className={`relative flex flex-col items-center justify-center ${bgColor} ${textColor} px-2 py-1 rounded shadow cursor-pointer select-none min-w-[70px] min-h-[40px] transition-all duration-200`}
+      className="relative flex flex-col items-center justify-center px-2 py-1 rounded shadow cursor-pointer select-none min-w-[70px] min-h-[40px] transition-all duration-200"
       onClick={() => data.member && data.onRemove?.()}
     >
       <span
         ref={textRef}
-        style={{ fontSize: `${fontSize}px` }}
+        style={{ fontSize: `${fontSize}px`, ...textStyle }}
         className="font-semibold leading-tight text-center whitespace-nowrap"
       >
-        {data.member ? data.member.nickname : data.label}
+        {displayName}
       </span>
 
       {data.showRotateButton && (
-  <button
-    onClick={(e) => {
-      e.stopPropagation();
-      data.onRotate?.();
-    }}
-    className="absolute -top-2 -right-2 bg-white text-black rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
-  >
-    ⟳
-  </button>
-)}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onRotate?.();
+          }}
+          className="absolute -top-2 -right-2 bg-white text-black rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
+        >
+          ⟳
+        </button>
+      )}
 
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0 }} />
       <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />

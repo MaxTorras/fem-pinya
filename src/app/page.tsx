@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/context/UserContext";
+import NotificationToggleButton from "@/components/NotificationToggleButton";
 
 type PollVote = {
   id: string;

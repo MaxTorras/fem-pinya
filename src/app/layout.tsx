@@ -1,4 +1,3 @@
-// src/app/layout.tsx
 "use client"; // ⚠️ Important: this makes the whole layout a client component
 
 import Link from "next/link";
@@ -10,13 +9,12 @@ import InstallPrompt from "@/components/InstallPrompt";
 import { UserProvider } from "@/context/UserContext";
 import PushNotifications from "@/components/PushNotifications";
 import SendNotificationButton from "@/components/SendNotificationButton";
+import NotificationToggleButton from "@/components/NotificationToggleButton"; // ✅ import the toggle button
 
 const quicksand = Quicksand({
   subsets: ["latin"],
   weight: ["400", "600", "700"],
 });
-
-
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -58,6 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex items-center gap-3">
               <HeaderClient />
               <SendNotificationButton />
+              <NotificationToggleButton /> {/* ✅ added toggle button */}
             </div>
           </header>
 

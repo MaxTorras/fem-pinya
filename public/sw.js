@@ -7,6 +7,7 @@ self.addEventListener("push", (event) => {
     badge: "/icons/icon-192x192.png",
     data: data.url || "/",
   };
+
   event.waitUntil(self.registration.showNotification(title, options));
 });
 

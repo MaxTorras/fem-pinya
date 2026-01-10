@@ -1,4 +1,6 @@
 // src/app/layout.tsx
+"use client"; // ⚠️ Important: this makes the whole layout a client component
+
 import Link from "next/link";
 import "./globals.css";
 import { Quicksand } from "next/font/google";
@@ -6,8 +8,8 @@ import AdminKeyButton from "@/components/AdminKeyButton";
 import HeaderClient from "@/components/HeaderClient";
 import InstallPrompt from "@/components/InstallPrompt";
 import { UserProvider } from "@/context/UserContext";
-import PushNotifications from "@/components/PushNotifications"; // client component
-import SendNotificationButton from "@/components/SendNotificationButton"; // client component
+import PushNotifications from "@/components/PushNotifications";
+import SendNotificationButton from "@/components/SendNotificationButton";
 
 const quicksand = Quicksand({
   subsets: ["latin"],
@@ -34,7 +36,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="theme-color" content="#2f2484" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta
+          name="apple-mobile-web-app-status-bar-style"
+          content="black-translucent"
+        />
         <meta name="apple-mobile-web-app-title" content="Fem Pineapple" />
         <link rel="apple-touch-icon" href="/icons/icon-512x512.png" />
 
@@ -44,11 +49,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
       <body className={`${quicksand.className} min-h-screen flex flex-col`}>
         <UserProvider>
-          {/* Client-side notifications */}
+          {/* Push notifications subscription */}
           <PushNotifications />
 
           {/* Header */}
-          <header className="fixed top-0 left-0 w-full flex items-center justify-between
+          <header
+            className="fixed top-0 left-0 w-full flex items-center justify-between
             bg-[#2f2484] text-white p-4 shadow-md z-50"
           >
             <div className="flex items-center gap-3">
@@ -68,9 +74,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AdminKeyButton />
 
           {/* Main content */}
-          <main className="pt-20 px-4 flex-1 overflow-y-auto">
-            {children}
-          </main>
+          <main className="pt-20 px-4 flex-1 overflow-y-auto">{children}</main>
 
           {/* PWA Install Prompt */}
           <InstallPrompt />

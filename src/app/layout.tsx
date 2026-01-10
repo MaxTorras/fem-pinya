@@ -8,7 +8,7 @@ import HeaderClient from "@/components/HeaderClient";
 const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
 export const metadata = {
-  title: "Fem Pinya",
+  title: "Fem Pineapple",
   description: "Colla Castellera Edinburgh Attendance App",
   manifest: "/manifest.json",
   themeColor: "#2f2484",
@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Fem Pinya" />
+        <meta name="apple-mobile-web-app-title" content="Fem Pineapple" />
         <link rel="apple-touch-icon" href="/icons/icon-512x512.png" />
 
         {/* ✅ Prevent system dark mode auto-inversion */}

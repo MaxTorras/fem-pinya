@@ -269,6 +269,7 @@ export default function HomePage() {
               View Pinyes
             </button>
           </Link>
+          
         </div>
 
         {/* 📢 Announcements */}

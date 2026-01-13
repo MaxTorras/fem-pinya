@@ -28,12 +28,17 @@ export default function CheckIn() {
   const [suggestions, setSuggestions] = useState<Member[]>([]);
   const router = useRouter();
 
-  // ✅ FIX: sync nickname when user becomes available
+  const isLoggedIn = !!user;
+  const isCheckingInAsSomeoneElse =
+    isLoggedIn &&
+    nickname.toLowerCase() !== user.nickname.toLowerCase();
+
+  // Sync nickname once user is available (without overwriting edits)
   useEffect(() => {
-    if (user && !nickname) {
+    if (user && nickname === "") {
       setNickname(user.nickname);
     }
-  }, [user, nickname]);
+  }, [user]);
 
   useEffect(() => {
     const fetchMembers = async () => {
@@ -99,7 +104,11 @@ export default function CheckIn() {
       );
 
       if (!memberExists) {
-        const newMember: Member = { nickname, passwordHash: "", position: "New" };
+        const newMember: Member = {
+          nickname,
+          passwordHash: "",
+          position: "New",
+        };
 
         const addMemberRes = await fetch("/api/members", {
           method: "POST",
@@ -109,7 +118,9 @@ export default function CheckIn() {
 
         if (!addMemberRes.ok) {
           const errData = (await addMemberRes.json()) as ErrorResponse;
-          setStatus(`❌ Failed to add new member: ${errData.error || "Try again"}`);
+          setStatus(
+            `❌ Failed to add new member: ${errData.error || "Try again"}`
+          );
           setLoading(false);
           return;
         }
@@ -140,7 +151,9 @@ export default function CheckIn() {
   };
 
   return (
-    <main className={`${quicksand.className} flex flex-col items-center p-6 min-h-screen bg-white`}>
+    <main
+      className={`${quicksand.className} flex flex-col items-center p-6 min-h-screen bg-white`}
+    >
       <h1 className="text-3xl font-bold text-[#2f2484] mb-6">Check In</h1>
 
       <input
@@ -149,7 +162,6 @@ export default function CheckIn() {
         value={nickname}
         onChange={handleChange}
         className="border-2 border-[#2f2484] rounded p-3 w-64 text-center focus:outline-none focus:ring-2 focus:ring-yellow-400"
-        disabled={!!user}
       />
 
       {user && (
@@ -158,7 +170,19 @@ export default function CheckIn() {
         </p>
       )}
 
-      {suggestions.length > 0 && !user && (
+      {user && nickname !== user.nickname && (
+        <button
+          onClick={() => {
+            setNickname(user.nickname);
+            setSuggestions([]);
+          }}
+          className="mt-2 text-sm text-[#2f2484] underline hover:text-yellow-500"
+        >
+          Use my nickname
+        </button>
+      )}
+
+      {suggestions.length > 0 && (
         <ul className="border border-[#2f2484] rounded w-64 max-h-32 overflow-auto bg-white z-10 mt-2 shadow-lg">
           {suggestions.map((m) => (
             <li
@@ -166,13 +190,29 @@ export default function CheckIn() {
               className="p-2 cursor-pointer hover:bg-yellow-100"
               onClick={() => handleSelectSuggestion(m)}
             >
-              {m.nickname} {m.name || m.surname ? `(${m.name || ""} ${m.surname || ""})` : ""}
+              {m.nickname}{" "}
+              {m.name || m.surname
+                ? `(${m.name || ""} ${m.surname || ""})`
+                : ""}
             </li>
           ))}
         </ul>
       )}
 
+      {isCheckingInAsSomeoneElse && (
+        <p className="mt-4 text-sm text-yellow-700 font-medium text-center">
+          ⚠️ You are logged in as <strong>{user.nickname}</strong> but checking in
+          as <strong> {nickname}</strong>.
+        </p>
+      )}
+
       <div className="flex flex-col gap-4 mt-6 items-center w-full">
+        {nickname && (
+          <p className="text-sm text-gray-600">
+            Checking in as <strong>{nickname}</strong>
+          </p>
+        )}
+
         <button
           onClick={handleSubmit}
           disabled={loading}

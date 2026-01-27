@@ -78,12 +78,18 @@ export default function PinyaNode({ data }: PinyaNodeProps) {
     bgStyle.backgroundColor = "#facc15"; // yellow-500
     textStyle.color = "#000";
   } else if (data.member) {
-    if (data.member.position?.toLowerCase() === "new") bgStyle.backgroundColor = "#22c55e"; // green-500
-    else if (data.label === "Baix") bgStyle.backgroundColor = "#dc2626"; // red-600
-    else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
-      bgStyle.backgroundColor = "#facc15"; // yellow-400
-      textStyle.color = "#000";
-    } else bgStyle.backgroundColor = "#3b82f6"; // blue-500
+  if (data.member.position?.toLowerCase() === "new")
+    bgStyle.backgroundColor = "#22c55e"; // green-500
+  else if (data.label === "Baix")
+    bgStyle.backgroundColor = "#dc2626"; // red-600
+  else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {
+    bgStyle.backgroundColor = "#facc15"; // yellow-400
+    textStyle.color = "#000";
+  } else {
+    bgStyle.backgroundColor = "#3b82f6"; // blue-500
+    textStyle.color = "#fff"; // ✅ FIX
+  }
+
   } else {
     if (data.label === "Baix") bgStyle.backgroundColor = "#dc2626";
     else if (["Tronc", "Dosos", "Enxaneta", "Acotxadora"].includes(data.label)) {

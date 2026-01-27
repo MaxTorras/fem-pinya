@@ -18,10 +18,11 @@ function DaySelector({
   if (dates.length <= 1) return null;
   return (
     <select
-      className="border-2 border-[#2f2484] rounded p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-      value={selectedDate}
-      onChange={(e) => setSelectedDate(e.target.value)}
-    >
+  className="border-2 border-[#2f2484] dark:border-yellow-400 rounded p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+  value={selectedDate}
+  onChange={(e) => setSelectedDate(e.target.value)}
+>
+
       {dates.map((date) => (
         <option key={date} value={date}>
           {date}
@@ -71,32 +72,38 @@ export default function PositionsTab({
         <p>No attendance records for this day.</p>
       ) : (
         Object.entries(membersByPosition).map(([pos, list]) => (
-          <div key={pos} className="border-2 border-[#2f2484] rounded p-3">
-            <h3 className="mb-2">
-              {pos === "Unknown" ? (
-                <span className="text-red-600 font-semibold">⚠️ Missing / Unmatched Position</span>
-              ) : (
-                <span className="text-yellow-500 font-semibold">{pos}</span>
-              )}
-            </h3>
-            <ul className="text-sm text-gray-700 list-disc list-inside">
-              {list.map(({ member, rawNickname }) => (
-                <li key={rawNickname}>
-                  {member ? (
-                    <>
-                      <span>{member.nickname}</span>
-                      {(member.name || member.surname) && (
-                        <span className="text-gray-500 text-sm ml-1">
-                          ({member.name || ""} {member.surname || ""})
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <span>{rawNickname}</span>
-                  )}
-                </li>
-              ))}
-            </ul>
+          <div
+  key={pos}
+  className="border-2 border-[#2f2484] dark:border-yellow-400 rounded p-3 bg-white dark:bg-gray-800"
+>
+
+            <h3 className="mb-2 font-semibold">
+  {pos === "Unknown" ? (
+    <span className="text-red-600 dark:text-red-400">⚠️ Missing / Unmatched Position</span>
+  ) : (
+    <span className="text-yellow-500 dark:text-yellow-400">{pos}</span>
+  )}
+</h3>
+
+            <ul className="text-sm text-gray-700 dark:text-gray-200 list-disc list-inside">
+  {list.map(({ member, rawNickname }) => (
+    <li key={rawNickname}>
+      {member ? (
+        <>
+          <span>{member.nickname}</span>
+          {(member.name || member.surname) && (
+            <span className="text-gray-500 dark:text-gray-400 text-sm ml-1">
+              ({member.name || ""} {member.surname || ""})
+            </span>
+          )}
+        </>
+      ) : (
+        <span>{rawNickname}</span>
+      )}
+    </li>
+  ))}
+</ul>
+
           </div>
         ))
       )}

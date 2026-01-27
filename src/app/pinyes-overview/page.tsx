@@ -1,4 +1,3 @@
-// src/app/pinyes-overview/page.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -30,7 +29,7 @@ export type PinyaLayout = {
   id: string;
   name: string;
   positions: LayoutPosition[];
-  published_dates?: string[]; // optional, but present in API
+  published_dates?: string[];
 };
 
 type LayoutResponse = { layouts: PinyaLayout[] };
@@ -51,7 +50,6 @@ export default function PinyesOverviewPage() {
   const lastDistance = useRef<number | null>(null);
   const lastCenter = useRef<{ x: number; y: number } | null>(null);
 
-  // Fetch ALL published layouts (long-term)
   useEffect(() => {
     const fetchLayouts = async () => {
       try {
@@ -68,7 +66,6 @@ export default function PinyesOverviewPage() {
     fetchLayouts();
   }, []);
 
-  // Convert active layout to ReactFlow nodes
   useEffect(() => {
     const activeLayout = layouts.find((l) => l.id === activeLayoutId);
     if (!activeLayout?.positions?.length) {
@@ -101,7 +98,7 @@ export default function PinyesOverviewPage() {
     setNodes(allNodes);
   }, [activeLayoutId, layouts, memberSearch]);
 
-  // Handle pinch rotation & zoom for mobile
+  // Mobile pinch/zoom rotation
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -116,22 +113,19 @@ export default function PinyesOverviewPage() {
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         const [t1, t2] = e.touches;
-        const dx = t2.clientX - t1.clientX;
-        const dy = t2.clientY - t1.clientY;
-        const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+        const angle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * (180 / Math.PI);
         const distance = getDistance(t1, t2);
         const center = getCenter(t1, t2);
 
         if (lastAngle.current !== null) {
-          const delta = angle - lastAngle.current;
-          setRotation((r) => r + delta);
-        }
+  const delta = angle - lastAngle.current;
+  setRotation((r) => r + delta);
+}
 
         if (lastDistance.current !== null) {
           const zoom = distance / lastDistance.current;
           setScale((s) => Math.min(3, Math.max(0.3, s * zoom)));
         }
-
         if (lastCenter.current) {
           const moveX = center.x - lastCenter.current.x;
           const moveY = center.y - lastCenter.current.y;
@@ -152,14 +146,13 @@ export default function PinyesOverviewPage() {
 
     el.addEventListener("touchmove", handleTouchMove);
     el.addEventListener("touchend", handleTouchEnd);
-
     return () => {
       el.removeEventListener("touchmove", handleTouchMove);
       el.removeEventListener("touchend", handleTouchEnd);
     };
   }, []);
 
-  // Desktop zoom & drag
+  // Desktop zoom/drag
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -177,21 +170,16 @@ export default function PinyesOverviewPage() {
       isDragging = true;
       start = { x: e.clientX - offset.x, y: e.clientY - offset.y };
     };
-
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
       setOffset({ x: e.clientX - start.x, y: e.clientY - start.y });
     };
-
-    const handleMouseUp = () => {
-      isDragging = false;
-    };
+    const handleMouseUp = () => (isDragging = false);
 
     el.addEventListener("wheel", handleWheel, { passive: false });
     el.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
-
     return () => {
       el.removeEventListener("wheel", handleWheel);
       el.removeEventListener("mousedown", handleMouseDown);
@@ -201,10 +189,8 @@ export default function PinyesOverviewPage() {
   }, [offset]);
 
   return (
-    <main
-      className={`${quicksand.className} w-full h-screen bg-white dark:bg-gray-900 flex flex-col`}
-    >
-      {/* Top Bar (collapsible on mobile) */}
+    <main className={`${quicksand.className} w-full h-screen bg-white dark:bg-gray-900 flex flex-col`}>
+      {/* Top Bar */}
       <div className="relative z-20 bg-white dark:bg-gray-800 shadow-md">
         <div className="flex justify-between items-center p-1 md:p-0">
           <button
@@ -213,7 +199,7 @@ export default function PinyesOverviewPage() {
           >
             {menuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
-          <h1 className="font-semibold text-lg md:text-xl mx-auto md:mx-0">
+          <h1 className="font-semibold text-lg md:text-xl mx-auto md:mx-0 text-gray-900 dark:text-yellow-300">
             Pinyes Overview
           </h1>
         </div>
@@ -236,7 +222,7 @@ export default function PinyesOverviewPage() {
             placeholder="Search your name..."
             value={memberSearch}
             onChange={(e) => setMemberSearch(e.target.value)}
-            className="border rounded px-4 py-2 flex-1 text-base mb-2 md:mb-0"
+            className="border rounded px-4 py-2 flex-1 text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 border-gray-300 dark:border-gray-600 mb-2 md:mb-0"
           />
 
           {layouts.length > 1 && (
@@ -244,11 +230,12 @@ export default function PinyesOverviewPage() {
               {layouts.map((layout) => (
                 <button
                   key={layout.id}
-                  className={`px-4 py-2 rounded font-semibold whitespace-nowrap text-base transition ${
-                    activeLayoutId === layout.id
-                      ? "bg-[#2f2484] text-yellow-400"
-                      : "bg-gray-200 text-gray-700 hover:bg-[#2f2484] hover:text-yellow-400"
-                  }`}
+                  className={`px-4 py-2 rounded font-semibold whitespace-nowrap text-base transition
+                    ${
+                      activeLayoutId === layout.id
+                        ? "bg-[#2f2484] text-yellow-400"
+                        : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-[#2f2484] hover:text-yellow-400"
+                    }`}
                   onClick={() => setActiveLayoutId(layout.id)}
                 >
                   {layout.name}
@@ -259,7 +246,7 @@ export default function PinyesOverviewPage() {
         </div>
       </div>
 
-      {/* Canvas area */}
+      {/* Canvas */}
       <div
         ref={containerRef}
         className="flex-1 overflow-hidden relative touch-none"
@@ -270,7 +257,7 @@ export default function PinyesOverviewPage() {
         }}
       >
         {nodes.length === 0 ? (
-          <p className="p-4 text-gray-500">No layouts published.</p>
+          <p className="p-4 text-gray-500 dark:text-gray-300">No layouts published.</p>
         ) : (
           <DndProvider backend={isMobile ? TouchBackend : HTML5Backend}>
             <ReactFlow

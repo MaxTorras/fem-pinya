@@ -1,26 +1,33 @@
-/* src\app\globals.css */
+/* src/app/globals.css */
 @import "tailwindcss";
 
-/* Light mode only */
+/* Light mode */
 :root {
   --background: #ffffff;
   --foreground: #171717;
 }
 
-/* Smooth theme transition */
-html, body {
+/* Dark mode */
+.dark {
+  --background: #0f172a; /* slate-900 */
+  --foreground: #f8fafc; /* slate-50 */
+}
+
+/* Apply theme */
+html,
+body {
   background-color: var(--background);
   color: var(--foreground);
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Hide scrollbars on tab bar (keeps it scrollable) */
+/* Hide scrollbars on tab bar */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 .scrollbar-hide {
-  -ms-overflow-style: none; /* IE/Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Animations */
@@ -28,17 +35,21 @@ html, body {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
 @keyframes popIn {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
 }
+
 .animate-popIn {
   animation: popIn 0.2s ease-out;
 }
-/* Slide up + fade in animation */
+
+/* Slide up + fade */
 @keyframes slideUpFade {
   from {
     transform: translateY(100%);
@@ -53,4 +64,3 @@ html, body {
 .animate-slideUpFade {
   animation: slideUpFade 0.4s ease-out;
 }
-

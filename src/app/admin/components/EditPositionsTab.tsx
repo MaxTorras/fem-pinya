@@ -58,11 +58,7 @@ export default function EditPositionsTab() {
     load();
   }, []);
 
-  const handleChange = (
-    index: number,
-    field: keyof PositionRow,
-    value: string
-  ) => {
+  const handleChange = (index: number, field: keyof PositionRow, value: string) => {
     setRows((prev) => {
       const copy = [...prev];
       copy[index] = { ...copy[index], [field]: value || null };
@@ -82,9 +78,7 @@ export default function EditPositionsTab() {
       });
       if (!res.ok) {
         const body = await res.text();
-        throw new Error(
-          `Failed to save positions (${res.status}) - ${body || "No message"}`
-        );
+        throw new Error(`Failed to save positions (${res.status}) - ${body || "No message"}`);
       }
       setMessage("Positions updated ✅");
     } catch (err: any) {
@@ -105,13 +99,13 @@ export default function EditPositionsTab() {
     <div className="space-y-4">
       {/* 🔹 Header + Save button */}
       <div className="flex items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold text-[#2f2484]">
+        <h2 className="text-lg font-semibold text-[#2f2484] dark:text-yellow-300">
           Edit Positions
         </h2>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-4 py-2 rounded bg-[#2f2484] text-yellow-300 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+          className="px-4 py-2 rounded bg-[#2f2484] dark:bg-gray-800 text-yellow-300 dark:text-yellow-300 text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {saving ? "Saving…" : "Save changes"}
         </button>
@@ -119,19 +113,19 @@ export default function EditPositionsTab() {
 
       {/* 🔹 Messages */}
       {message && (
-        <p className="text-sm text-green-600 bg-green-50 border border-green-200 px-3 py-2 rounded">
+        <p className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 px-3 py-2 rounded">
           {message}
         </p>
       )}
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded">
+        <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 px-3 py-2 rounded">
           {error}
         </p>
       )}
 
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm border border-[#2f2484] rounded overflow-hidden">
-          <thead className="bg-[#2f2484] text-yellow-300">
+        <table className="min-w-full text-sm border border-gray-600 dark:border-gray-700 rounded overflow-hidden">
+          <thead className="bg-[#2f2484] dark:bg-gray-800 text-yellow-300 dark:text-yellow-300">
             <tr>
               <th className="px-3 py-2 text-left">Nickname</th>
               <th className="px-3 py-2 text-left">Name</th>
@@ -140,27 +134,19 @@ export default function EditPositionsTab() {
               <th className="px-3 py-2 text-left">Position 2</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y">
+          <tbody className="bg-gray-100 dark:bg-gray-900 divide-y divide-gray-300 dark:divide-gray-700 text-gray-900 dark:text-white">
             {rows.map((row, index) => (
               <tr key={row.nickname}>
-                <td className="px-3 py-2 align-top font-semibold">
-                  {row.nickname}
-                </td>
-                <td className="px-3 py-2 align-top text-gray-700">
-                  {row.name}
-                </td>
-                <td className="px-3 py-2 align-top text-gray-700">
-                  {row.surname}
-                </td>
+                <td className="px-3 py-2 align-top font-semibold">{row.nickname}</td>
+                <td className="px-3 py-2 align-top">{row.name}</td>
+                <td className="px-3 py-2 align-top">{row.surname}</td>
 
                 {/* 🔽 Position dropdown */}
                 <td className="px-3 py-2 align-top">
                   <select
                     value={row.position || ""}
-                    onChange={(e) =>
-                      handleChange(index, "position", e.target.value)
-                    }
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+                    onChange={(e) => handleChange(index, "position", e.target.value)}
+                    className="w-full border border-gray-600 dark:border-gray-500 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   >
                     {POSITION_OPTIONS.map((opt) => (
                       <option key={opt} value={opt}>
@@ -174,10 +160,8 @@ export default function EditPositionsTab() {
                 <td className="px-3 py-2 align-top">
                   <select
                     value={row.position2 || ""}
-                    onChange={(e) =>
-                      handleChange(index, "position2", e.target.value)
-                    }
-                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+                    onChange={(e) => handleChange(index, "position2", e.target.value)}
+                    className="w-full border border-gray-600 dark:border-gray-500 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   >
                     {POSITION_OPTIONS.map((opt) => (
                       <option key={opt} value={opt}>
@@ -192,9 +176,8 @@ export default function EditPositionsTab() {
         </table>
       </div>
 
-      <p className="text-xs text-gray-500">
-        Changes here update columns <code>Position</code> and{" "}
-        <code>Position2</code> in your <strong>Members</strong> sheet.
+      <p className="text-xs text-gray-500 dark:text-gray-300">
+        Changes here update columns <code>Position</code> and <code>Position2</code> in your <strong>Members</strong> sheet.
       </p>
     </div>
   );

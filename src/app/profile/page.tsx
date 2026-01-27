@@ -18,8 +18,12 @@ export default function ProfilePage() {
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
 
-  const inputClass =
-    "border-2 border-[#2f2484] rounded p-3 w-64 text-center focus:outline-none focus:ring-2 focus:ring-yellow-400";
+ const inputClass =
+  "border-2 border-[#2f2484] dark:border-yellow-400 rounded p-3 w-64 text-center " +
+  "bg-white dark:bg-gray-800 text-black dark:text-white " +
+  "placeholder:text-gray-500 dark:placeholder:text-gray-400 " +
+  "focus:outline-none focus:ring-2 focus:ring-yellow-400 dark:focus:ring-yellow-300";
+
   const buttonClass = "px-6 py-2 rounded font-semibold transition";
 
   if (!user) return <p className={`${quicksand.className} p-6`}>You must be logged in to view this page.</p>;
@@ -74,8 +78,13 @@ export default function ProfilePage() {
   };
 
   return (
-    <main className={`${quicksand.className} flex flex-col items-center p-6 min-h-screen bg-white`}>
-      <h1 className="text-3xl font-bold text-[#2f2484] mb-4">Profile</h1>
+   <main
+  className={`${quicksand.className} flex flex-col items-center p-6 min-h-screen bg-white dark:bg-gray-900`}
+>
+      <h1 className="text-3xl font-bold text-[#2f2484] dark:text-yellow-400 mb-4">
+  Profile
+</h1>
+
 
       <input
         type="text"
@@ -100,7 +109,10 @@ export default function ProfilePage() {
       />
 
       <hr className="w-64 my-3 border-gray-300" />
-      <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Change Password</h2>
+      <h2 className="text-lg font-semibold text-[#2f2484] dark:text-yellow-400 mb-2">
+  Change Password
+</h2>
+
       <input
         type={showPassword ? "text" : "password"}
         placeholder="Old Password"
@@ -122,7 +134,8 @@ export default function ProfilePage() {
         onChange={(e) => setConfirmPassword(e.target.value)}
         className={inputClass}
       />
-      <label className="flex items-center gap-2 text-sm mt-1">
+      <label className="flex items-center gap-2 text-sm mt-1 text-gray-700 dark:text-gray-300">
+
         <input type="checkbox" checked={showPassword} onChange={() => setShowPassword(!showPassword)} />
         Show password
       </label>

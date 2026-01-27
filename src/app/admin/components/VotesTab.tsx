@@ -103,14 +103,20 @@ export default function VotesTab({ members }: { members: Member[] }) {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-[#2f2484] mb-2">Event Attendance</h2>
+      <h2 className="text-lg font-semibold text-[#2f2484] dark:text-yellow-400 mb-2">
+  Event Attendance
+</h2>
+
 
       {/* Event Selector */}
       <select
-        className="border-2 border-[#2f2484] rounded p-2 mb-4 focus:outline-none focus:ring-2 focus:ring-yellow-400"
-        value={selectedEvent}
-        onChange={(e) => setSelectedEvent(e.target.value)}
-      >
+  className="border-2 border-[#2f2484] dark:border-yellow-400 rounded p-2 mb-4 
+             bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 
+             focus:outline-none focus:ring-2 focus:ring-yellow-400"
+  value={selectedEvent}
+  onChange={(e) => setSelectedEvent(e.target.value)}
+>
+
         {events.map((event) => (
           <option key={event.id} value={event.id}>
             {event.title} ({event.date}
@@ -120,8 +126,9 @@ export default function VotesTab({ members }: { members: Member[] }) {
       </select>
 
       {/* Coming by Position (top, primary view) */}
-      <div className="border-2 border-[#2f2484] rounded p-3">
-        <h3 className="mb-3 font-semibold text-[#2f2484] flex items-center gap-2">
+      <div className="border-2 border-[#2f2484] dark:border-yellow-400 rounded p-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+
+        <h3 className="mb-3 font-semibold text-[#2f2484] dark:text-yellow-400 flex items-center gap-2">
           <CheckCircle size={18} />
           <span>Coming</span>
         </h3>
@@ -134,25 +141,26 @@ export default function VotesTab({ members }: { members: Member[] }) {
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {Object.entries(comingByPosition).map(([pos, nicknames]) => (
               <div
-                key={pos}
-                className="rounded border border-[#2f2484]/40 p-2 bg-white"
-              >
-                <h4 className="mb-1 text-sm font-semibold flex items-center gap-1">
-                  {pos === "Unknown" ? (
-                    <>
-                      <AlertTriangle size={16} className="text-red-600" />
-                      <span className="text-red-600">Unknown position</span>
-                    </>
-                  ) : (
-                    <span className="text-yellow-500">{pos}</span>
-                  )}
-                </h4>
-                <ul className="text-sm text-gray-700 list-disc list-inside">
-                  {nicknames.map((nick) => (
-                    <li key={nick}>{nick}</li>
-                  ))}
-                </ul>
-              </div>
+  key={pos}
+  className="rounded border border-[#2f2484]/40 dark:border-yellow-400/40 p-2 bg-white dark:bg-gray-700"
+>
+  <h4 className="mb-1 text-sm font-semibold flex items-center gap-1">
+    {pos === "Unknown" ? (
+      <>
+        <AlertTriangle size={16} className="text-red-600" />
+        <span className="text-red-600 dark:text-red-400">Unknown position</span>
+      </>
+    ) : (
+      <span className="text-yellow-500 dark:text-yellow-400">{pos}</span>
+    )}
+  </h4>
+  <ul className="text-sm text-gray-700 dark:text-gray-200 list-disc list-inside">
+    {nicknames.map((nick) => (
+      <li key={nick}>{nick}</li>
+    ))}
+  </ul>
+</div>
+
             ))}
           </div>
         )}
@@ -163,22 +171,23 @@ export default function VotesTab({ members }: { members: Member[] }) {
         {visibleStatuses.map((status) => {
           const { label, Icon } = statusLabels[status];
           return (
-            <div key={status} className="border-2 border-[#2f2484] rounded p-3">
-              <h3 className="mb-2 font-semibold text-[#2f2484] flex items-center gap-1">
-                <Icon size={18} />
-                {label} ({groupedByStatus[status].length})
-              </h3>
-              <ul className="text-sm list-disc list-inside text-gray-700">
-                {groupedByStatus[status].map((m) => (
-                  <li key={m.nickname}>
-                    <span>{m.nickname}</span>
-                    {m.comment && (
-                      <span className="text-gray-400 ml-2">– {m.comment}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <div key={status} className="border-2 border-[#2f2484] dark:border-yellow-400 rounded p-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+  <h3 className="mb-2 font-semibold text-[#2f2484] dark:text-yellow-400 flex items-center gap-1">
+    <Icon size={18} />
+    {label} ({groupedByStatus[status].length})
+  </h3>
+  <ul className="text-sm list-disc list-inside text-gray-700 dark:text-gray-200">
+    {groupedByStatus[status].map((m) => (
+      <li key={m.nickname}>
+        <span>{m.nickname}</span>
+        {m.comment && (
+          <span className="text-gray-400 dark:text-gray-400 ml-2">– {m.comment}</span>
+        )}
+      </li>
+    ))}
+  </ul>
+</div>
+
           );
         })}
       </div>

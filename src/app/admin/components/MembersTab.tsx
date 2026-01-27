@@ -29,7 +29,7 @@ export default function MembersTab({
   members: Member[];
   attendance: AttendanceRecord[];
 }) {
-  const [showOnlyMyColla, setShowOnlyMyColla] = useState(false); // <-- new state
+  const [showOnlyMyColla, setShowOnlyMyColla] = useState(false);
 
   const today = new Date();
   const oneMonthAgo = new Date();
@@ -92,30 +92,27 @@ export default function MembersTab({
       });
   }, [attendance, uniqueMembers]);
 
-  // Filter members if "show only my colla" is active
   const filteredStats = showOnlyMyColla
-    ? stats.filter(m => !m.colla) // only members with empty colla
+    ? stats.filter(m => !m.colla)
     : stats;
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-[#2f2484] mb-2">
+      <h2 className="text-lg font-semibold text-gray-900 dark:text-yellow-300 mb-2">
         Members & Attendance
       </h2>
 
-      {/* Toggle button */}
       <button
-        className="px-3 py-1 border rounded border-[#2f2484] text-[#2f2484] hover:bg-[#2f2484] hover:text-white transition"
+        className="px-3 py-1 border rounded border-gray-900 dark:border-yellow-300 text-gray-900 dark:text-yellow-300 hover:bg-gray-200 dark:hover:bg-yellow-300 hover:text-gray-900 dark:hover:text-gray-900 transition"
         onClick={() => setShowOnlyMyColla(!showOnlyMyColla)}
       >
         {showOnlyMyColla ? "Show All Collas" : "Show Only My Colla"}
       </button>
 
-      <ul className="border-2 border-[#2f2484] rounded divide-y mt-2">
+      <ul className="border-2 border-gray-900 dark:border-yellow-300 rounded divide-y mt-2 bg-gray-100 dark:bg-gray-900">
         {filteredStats.map(({ nickname, name, surname, count, greyedOut, colla, collaColor, streak }, index) => {
           const displayName = `${name || ""} ${surname || ""}`.trim() || nickname;
 
-          // Colla initials
           const collaInitials = colla
             ? colla
                 .split(" ")
@@ -123,30 +120,35 @@ export default function MembersTab({
                 .join("")
             : "";
 
-          // Name color (optional)
-          const nameStyle: React.CSSProperties = collaColor ? { color: collaColor } : {};
-
-          // Greyed out members
-          const nicknameStyle: React.CSSProperties = greyedOut ? { color: "#9ca3af" } : {};
+          // Determine text color dynamically
+          const badgeColor = collaColor ? getContrastColor(collaColor) : undefined;
 
           return (
             <li
               key={`${nickname}-${index}`}
-              className="p-3 flex justify-between items-center"
+              className={`p-3 flex justify-between items-center ${greyedOut ? "opacity-50" : ""}`}
             >
-              <span className="flex items-center gap-1">
-                <span style={nameStyle}>
+              <span className="flex flex-col">
+                <span
+                  className={`font-semibold ${greyedOut ? "text-gray-400 dark:text-gray-500" : "text-gray-900 dark:text-white"}`}
+                  style={{
+                    backgroundColor: collaColor || "transparent",
+                    padding: collaColor ? "0 4px" : undefined,
+                    borderRadius: collaColor ? "4px" : undefined,
+                    color: collaColor ? badgeColor : undefined,
+                  }}
+                >
+                  {streak > 3 && !greyedOut && <span>🔥</span>}
                   {displayName} {collaInitials && `(${collaInitials})`}
-                  <span style={nicknameStyle} className="text-sm ml-1">
-                    ({nickname})
-                  </span>
                 </span>
-
-                {/* Fire emoji for streak >3 */}
-                {streak > 3 && !greyedOut && <span className="ml-1">🔥</span>}
+                <span className="text-sm text-gray-500 dark:text-gray-300">({nickname})</span>
               </span>
 
-              <span className="font-semibold">{count}x</span>
+              <span className="font-semibold flex items-center gap-1 text-gray-900 dark:text-yellow-300">
+
+                {count}x
+
+              </span>
             </li>
           );
         })}

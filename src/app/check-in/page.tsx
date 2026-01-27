@@ -152,20 +152,29 @@ export default function CheckIn() {
 
   return (
     <main
-      className={`${quicksand.className} flex flex-col items-center p-6 min-h-screen bg-white`}
+      className={`${quicksand.className} flex flex-col items-center p-6 min-h-screen bg-white dark:bg-zinc-900`}
     >
-      <h1 className="text-3xl font-bold text-[#2f2484] mb-6">Check In</h1>
+      <h1 className="text-3xl font-bold text-[#2f2484] dark:text-yellow-400 mb-6">Check In</h1>
 
       <input
         type="text"
         placeholder="Who are you?"
         value={nickname}
         onChange={handleChange}
-        className="border-2 border-[#2f2484] rounded p-3 w-64 text-center focus:outline-none focus:ring-2 focus:ring-yellow-400"
+        className="
+  border-2 border-[#2f2484]
+  dark:border-yellow-400
+  rounded p-3 w-64 text-center
+  bg-white dark:bg-zinc-800
+  text-black dark:text-white
+  placeholder:text-gray-500 dark:placeholder:text-gray-400
+  focus:outline-none focus:ring-2 focus:ring-yellow-400
+"
+
       />
 
       {user && (
-        <p className="mt-1 text-gray-600">
+        <p className="mt-1 text-gray-600 dark:text-gray-300">
           Logged in as {user.nickname} ({user.name} {user.surname})
         </p>
       )}
@@ -176,18 +185,27 @@ export default function CheckIn() {
             setNickname(user.nickname);
             setSuggestions([]);
           }}
-          className="mt-2 text-sm text-[#2f2484] underline hover:text-yellow-500"
+          className="mt-2 text-sm text-[#2f2484] dark:text-yellow-400 underline hover:text-yellow-500"
+
         >
           Use my nickname
         </button>
       )}
 
       {suggestions.length > 0 && (
-        <ul className="border border-[#2f2484] rounded w-64 max-h-32 overflow-auto bg-white z-10 mt-2 shadow-lg">
+        <ul className="
+  border border-[#2f2484]
+  dark:border-yellow-400
+  rounded w-64 max-h-32 overflow-auto
+  bg-white dark:bg-zinc-800
+  text-black dark:text-white
+  z-10 mt-2 shadow-lg
+">
+
           {suggestions.map((m) => (
             <li
               key={m.nickname}
-              className="p-2 cursor-pointer hover:bg-yellow-100"
+              className="p-2 cursor-pointer hover:bg-yellow-100 dark:hover:bg-zinc-700"
               onClick={() => handleSelectSuggestion(m)}
             >
               {m.nickname}{" "}
@@ -200,7 +218,7 @@ export default function CheckIn() {
       )}
 
       {isCheckingInAsSomeoneElse && (
-        <p className="mt-4 text-sm text-yellow-700 font-medium text-center">
+        <p className="mt-4 text-sm text-yellow-700 dark:text-yellow-400 font-medium text-center">
           ⚠️ You are logged in as <strong>{user.nickname}</strong> but checking in
           as <strong> {nickname}</strong>.
         </p>
@@ -208,7 +226,7 @@ export default function CheckIn() {
 
       <div className="flex flex-col gap-4 mt-6 items-center w-full">
         {nickname && (
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             Checking in as <strong>{nickname}</strong>
           </p>
         )}
@@ -232,12 +250,12 @@ export default function CheckIn() {
       {status && (
         <p
           className={`mt-4 font-medium ${
-            status.includes("✅")
-              ? "text-green-600"
-              : status.includes("⚠️")
-              ? "text-yellow-600"
-              : "text-red-600"
-          }`}
+  status.includes("✅")
+    ? "text-green-600 dark:text-green-400"
+    : status.includes("⚠️")
+    ? "text-yellow-600 dark:text-yellow-400"
+    : "text-red-600 dark:text-red-400"
+}`}
         >
           {status}
         </p>

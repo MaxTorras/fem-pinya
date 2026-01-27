@@ -57,9 +57,10 @@ export default function TecnicaTab({ layouts }: { layouts: PinyaLayout[] }) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-[#2f2484] mb-2">
-        Tecnica – Select Layouts to Show in Overview
-      </h2>
+      <h2 className="text-lg font-semibold text-[#2f2484] dark:text-yellow-400 mb-2">
+  Tecnica – Select Layouts to Show in Overview
+</h2>
+
 
       <div className="flex gap-2 mb-2">
         <button
@@ -90,8 +91,13 @@ export default function TecnicaTab({ layouts }: { layouts: PinyaLayout[] }) {
             return acc;
           }, {})
         ).map(([folderName, folderLayouts]) => (
-          <div key={folderName} className="border-2 border-[#2f2484] rounded">
-            <div className="w-full text-left px-3 py-2 bg-gray-100 dark:bg-gray-800 font-semibold flex justify-between items-center">
+          <div key={folderName} className="border-2 border-[#2f2484] dark:border-gray-600 rounded">
+
+            <div className="w-full text-left px-3 py-2 
+  bg-gray-100 dark:bg-gray-800 
+  text-gray-800 dark:text-gray-100
+  font-semibold flex justify-between items-center">
+
               {folderName} ({folderLayouts.length})
             </div>
             <ul className="divide-y">
@@ -107,16 +113,33 @@ export default function TecnicaTab({ layouts }: { layouts: PinyaLayout[] }) {
                   <li
                     key={layout.id}
                     className={`p-3 flex justify-between items-center cursor-pointer transition
-                      ${isSelected ? "bg-blue-100" : isPublished ? "bg-green-50" : ""}`}
+  text-gray-800 dark:text-gray-100
+  ${
+    isSelected
+      ? "bg-blue-100 dark:bg-blue-900/40"
+      : isPublished
+      ? "bg-green-50 dark:bg-green-900/30"
+      : "hover:bg-gray-100 dark:hover:bg-gray-800"
+  }`}
+
                     onClick={() => toggleSelected(layout.id)}
                   >
                     <span>{layout.name}</span>
                     {isPublished ? (
-                      <span className="text-xs text-green-700 font-semibold bg-green-100 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-semibold 
+  text-green-700 dark:text-green-300 
+  bg-green-100 dark:bg-green-900/40
+  px-2 py-0.5 rounded-full">
+
+
                         Published
                       </span>
                     ) : (
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                      <span className="text-xs 
+  text-gray-600 dark:text-gray-300 
+  bg-gray-100 dark:bg-gray-700
+  px-2 py-0.5 rounded-full">
+
                         Unpublished
                       </span>
                     )}

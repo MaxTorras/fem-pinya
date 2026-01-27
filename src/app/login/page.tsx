@@ -70,9 +70,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-900">
       <div className="w-full max-w-sm bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 mx-4">
-        <h1 className="text-3xl font-bold text-center text-[#2f2484] mb-2">
-          Fem Pinya
-        </h1>
+        <h1 className="text-3xl font-bold text-center text-[#2f2484] dark:text-yellow-400 mb-2">
+  Fem Pinya
+</h1>
+
         <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
           Log in to continue
         </p>
@@ -105,15 +106,34 @@ export default function LoginPage() {
                 );
               }}
               required
-              className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2f2484]"
+              className="
+  w-full
+  border border-gray-300 dark:border-gray-700
+  rounded-lg px-3 py-2
+  bg-white dark:bg-gray-800
+  text-black dark:text-white
+  placeholder:text-gray-500 dark:placeholder:text-gray-400
+  focus:outline-none
+  focus:ring-2 focus:ring-[#2f2484] dark:focus:ring-yellow-400
+"
+
             />
 
             {suggestions.length > 0 && (
-              <ul className="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg mt-1 max-h-40 overflow-auto shadow-lg">
+              <ul className="
+  absolute z-10 w-full
+  bg-white dark:bg-gray-800
+  border border-gray-300 dark:border-gray-700
+  rounded-lg mt-1 max-h-40 overflow-auto
+  shadow-lg
+  text-black dark:text-white
+">
+
                 {suggestions.map((m) => (
                   <li
                     key={m.nickname}
                     className="px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+
                     onClick={() => {
                       setNickname(m.nickname);
                       setSuggestions([]);
@@ -135,7 +155,17 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2f2484]"
+            className="
+  w-full
+  border border-gray-300 dark:border-gray-700
+  rounded-lg px-3 py-2
+  bg-white dark:bg-gray-800
+  text-black dark:text-white
+  placeholder:text-gray-500 dark:placeholder:text-gray-400
+  focus:outline-none
+  focus:ring-2 focus:ring-[#2f2484] dark:focus:ring-yellow-400
+"
+
           />
 
           <label className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
@@ -150,7 +180,14 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full bg-[#2f2484] text-yellow-400 py-2 rounded-lg font-semibold hover:bg-[#3c32a1] transition flex items-center justify-center gap-2"
+           className="
+  w-full bg-[#2f2484] text-yellow-400
+  py-2 rounded-lg font-semibold
+  hover:bg-[#3c32a1]
+  dark:hover:bg-yellow-400 dark:hover:text-[#2f2484]
+  transition flex items-center justify-center gap-2
+"
+
           >
             <LogIn size={18} /> Log In
           </button>

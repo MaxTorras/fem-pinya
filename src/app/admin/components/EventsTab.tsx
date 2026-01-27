@@ -10,7 +10,7 @@ type Event = {
   date: string;
   time: string;
   folder: string;
-  google_form?: string; // ✅ new optional field
+  google_form?: string;
 };
 
 export default function EventsTab() {
@@ -21,11 +21,10 @@ export default function EventsTab() {
   const [time, setTime] = useState("");
   const [tbc, setTbc] = useState(false);
   const [folder, setFolder] = useState("Performances");
-  const [googleForm, setGoogleForm] = useState(""); // ✅ new state
+  const [googleForm, setGoogleForm] = useState("");
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  // Load events
   const loadEvents = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -43,7 +42,6 @@ export default function EventsTab() {
     loadEvents();
   }, []);
 
-  // Save or update event
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -53,7 +51,7 @@ export default function EventsTab() {
       date,
       time: tbc ? "TBC" : time,
       folder,
-      google_form: googleForm || null, // ✅ include google form
+      google_form: googleForm || null,
     };
 
     let result;
@@ -69,7 +67,7 @@ export default function EventsTab() {
       setTime("");
       setTbc(false);
       setFolder("Performances");
-      setGoogleForm(""); // ✅ reset field
+      setGoogleForm("");
       setEditingId(null);
       await loadEvents();
     }
@@ -77,7 +75,6 @@ export default function EventsTab() {
     setSaving(false);
   };
 
-  // Delete event
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this event?")) return;
     const { error } = await supabase.from("events").delete().eq("id", id);
@@ -85,7 +82,6 @@ export default function EventsTab() {
     else loadEvents();
   };
 
-  // Edit event
   const handleEdit = (ev: Event) => {
     setEditingId(ev.id);
     setTitle(ev.title);
@@ -93,17 +89,17 @@ export default function EventsTab() {
     setTbc(ev.time === "TBC");
     setTime(ev.time === "TBC" ? "" : ev.time);
     setFolder(ev.folder);
-    setGoogleForm(ev.google_form || ""); // ✅ load saved link
+    setGoogleForm(ev.google_form || "");
   };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Left: Form */}
-      <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-        <h1 className="text-2xl font-bold text-[#2f2484] mb-1">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6">
+        <h1 className="text-2xl font-bold text-[#2f2484] dark:text-yellow-400 mb-1">
           {editingId ? "Edit Event" : "Add New Event"}
         </h1>
-        <p className="text-gray-600 text-sm mb-4">
+        <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
           {editingId
             ? "Update details below and save"
             : "Create a new event for the calendar"}
@@ -112,7 +108,7 @@ export default function EventsTab() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-semibold text-[#2f2484] mb-1">
+            <label className="block text-sm font-semibold text-[#2f2484] dark:text-yellow-400 mb-1">
               Event Title
             </label>
             <input
@@ -120,27 +116,27 @@ export default function EventsTab() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-[#FFD700] focus:outline-none"
+              className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
               placeholder="e.g. Full Rehearsal"
             />
           </div>
 
           {/* Date */}
           <div>
-            <label className="block text-sm font-semibold text-[#2f2484] mb-1">
+            <label className="block text-sm font-semibold text-[#2f2484] dark:text-yellow-400 mb-1">
               Date
             </label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-[#FFD700] focus:outline-none"
+              className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
             />
           </div>
 
           {/* Time */}
           <div>
-            <label className="block text-sm font-semibold text-[#2f2484] mb-1">
+            <label className="block text-sm font-semibold text-[#2f2484] dark:text-yellow-400 mb-1">
               Time
             </label>
             {!tbc && (
@@ -148,7 +144,7 @@ export default function EventsTab() {
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-[#FFD700] focus:outline-none"
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
               />
             )}
             <div className="flex items-center gap-2 mt-1">
@@ -158,7 +154,7 @@ export default function EventsTab() {
                 checked={tbc}
                 onChange={() => setTbc(!tbc)}
               />
-              <label htmlFor="tbc" className="text-sm text-gray-700">
+              <label htmlFor="tbc" className="text-sm text-gray-900 dark:text-gray-200">
                 Time TBC
               </label>
             </div>
@@ -166,13 +162,13 @@ export default function EventsTab() {
 
           {/* Folder */}
           <div>
-            <label className="block text-sm font-semibold text-[#2f2484] mb-1">
+            <label className="block text-sm font-semibold text-[#2f2484] dark:text-yellow-400 mb-1">
               Folder
             </label>
             <select
               value={folder}
               onChange={(e) => setFolder(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-[#FFD700] focus:outline-none"
+              className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
             >
               <option>Performances</option>
               <option>Rehearsals</option>
@@ -180,16 +176,16 @@ export default function EventsTab() {
             </select>
           </div>
 
-          {/* ✅ Google Form (optional) */}
+          {/* Google Form */}
           <div>
-            <label className="block text-sm font-semibold text-[#2f2484] mb-1">
+            <label className="block text-sm font-semibold text-[#2f2484] dark:text-yellow-400 mb-1">
               Google Form Link (optional)
             </label>
             <input
               type="url"
               value={googleForm}
               onChange={(e) => setGoogleForm(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-[#FFD700] focus:outline-none"
+              className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-md px-3 py-2 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
               placeholder="https://forms.gle/..."
             />
           </div>
@@ -197,7 +193,7 @@ export default function EventsTab() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full mt-4 bg-[#2f2484] text-white font-semibold py-3 rounded-full hover:bg-[#3a32a0] transition disabled:opacity-70"
+            className="w-full mt-4 bg-[#2f2484] text-white font-semibold py-3 rounded-full hover:bg-[#3a32a0] dark:hover:bg-[#4b45b0] transition disabled:opacity-70"
           >
             {saving ? "Saving..." : editingId ? "Save Changes" : "Add Event"}
           </button>
@@ -205,22 +201,22 @@ export default function EventsTab() {
       </div>
 
       {/* Right: Event List */}
-      <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-        <h2 className="text-xl font-bold text-[#2f2484] mb-4">All Events</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-6">
+        <h2 className="text-xl font-bold text-[#2f2484] dark:text-yellow-400 mb-4">All Events</h2>
         {loading ? (
-          <p>Loading events...</p>
+          <p className="text-gray-600 dark:text-gray-300">Loading events...</p>
         ) : events.length === 0 ? (
-          <p className="text-gray-500 text-sm">No events found.</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">No events found.</p>
         ) : (
           <ul className="space-y-3 max-h-[70vh] overflow-y-auto">
             {events.map((ev) => (
               <li
                 key={ev.id}
-                className="border border-gray-200 rounded-md p-3 flex justify-between items-center hover:bg-gray-50"
+                className="border border-gray-200 dark:border-gray-700 rounded-md p-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <div>
-                  <p className="font-semibold text-[#2f2484]">{ev.title}</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="font-semibold text-[#2f2484] dark:text-yellow-400">{ev.title}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-200">
                     {dayjs(ev.date).format("DD MMM")} — {ev.time} ({ev.folder})
                   </p>
                   {ev.google_form && (
@@ -228,7 +224,7 @@ export default function EventsTab() {
                       href={ev.google_form}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 text-sm underline"
+                      className="text-blue-600 dark:text-blue-400 text-sm underline"
                     >
                       Open Form
                     </a>
@@ -237,13 +233,13 @@ export default function EventsTab() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleEdit(ev)}
-                    className="text-sm text-blue-600 hover:underline"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(ev.id)}
-                    className="text-sm text-red-600 hover:underline"
+                    className="text-sm text-red-600 dark:text-red-400 hover:underline"
                   >
                     Delete
                   </button>

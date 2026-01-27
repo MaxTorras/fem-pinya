@@ -1,4 +1,3 @@
-// src/app/admin/components/AnnouncementsTab.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,7 +17,7 @@ export default function AnnouncementsTab() {
   const [message, setMessage] = useState("");
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState("");
-  const [link, setLink] = useState(""); // 🔗 new optional link
+  const [link, setLink] = useState("");
   const [loading, setLoading] = useState(false);
 
   const loadAnnouncements = async () => {
@@ -37,75 +36,66 @@ export default function AnnouncementsTab() {
   }, []);
 
   const addAnnouncement = async () => {
-  if (!title.trim() || !message.trim()) return;
+    if (!title.trim() || !message.trim()) return;
 
-  setLoading(true);
+    setLoading(true);
 
-  // 1) Create announcement (with optional link)
-  const { data: inserted, error: annError } = await supabase
-    .from("announcements")
-    .insert([
-      {
-        title,
-        message,
-        link: link.trim() || null,
-      },
-    ])
-    .select();
+    const { data: inserted, error: annError } = await supabase
+      .from("announcements")
+      .insert([{ title, message, link: link.trim() || null }])
+      .select();
 
-  if (annError || !inserted?.length) {
-    alert("Error adding announcement: " + (annError?.message || "unknown"));
+    if (annError || !inserted?.length) {
+      alert("Error adding announcement: " + (annError?.message || "unknown"));
+      setLoading(false);
+      return;
+    }
+
+    const newAnnouncement = inserted[0] as Announcement;
+
+    // Optional poll
+    if (pollQuestion.trim() && pollOptions.trim()) {
+      const optionsArray = pollOptions
+        .split(",")
+        .map((opt) => opt.trim())
+        .filter(Boolean);
+
+      const { error: pollError } = await supabase.from("polls").insert([
+        {
+          announcement_id: newAnnouncement.id,
+          question: pollQuestion,
+          options: optionsArray,
+        },
+      ]);
+
+      if (pollError) alert("Error adding poll: " + pollError.message);
+    }
+
+    // Send notifications
+    try {
+      await fetch("/api/send-notification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `New Announcement: ${newAnnouncement.title}`,
+          message: newAnnouncement.message,
+          url: newAnnouncement.link || "",
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to send push notifications:", err);
+    }
+
+    // Reset form
+    setTitle("");
+    setMessage("");
+    setPollQuestion("");
+    setPollOptions("");
+    setLink("");
+
+    await loadAnnouncements();
     setLoading(false);
-    return;
-  }
-
-  const newAnnouncement = inserted[0] as Announcement;
-
-  // 2) Optional poll (unchanged)
-  if (pollQuestion.trim() && pollOptions.trim()) {
-    const optionsArray = pollOptions
-      .split(",")
-      .map((opt) => opt.trim())
-      .filter(Boolean);
-
-    const { error: pollError } = await supabase.from("polls").insert([
-      {
-        announcement_id: newAnnouncement.id,
-        question: pollQuestion,
-        options: optionsArray,
-      },
-    ]);
-
-    if (pollError) alert("Error adding poll: " + pollError.message);
-  }
-
-  // ✅ 3) Send notifications to all subscribers
-  try {
-    await fetch("/api/send-notification", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    title: `New Announcement: ${newAnnouncement.title}`,
-    message: newAnnouncement.message,
-    url: newAnnouncement.link || "",
-  }),
-});
-
-  } catch (err) {
-    console.error("Failed to send push notifications:", err);
-  }
-
-  // 4) Reset form
-  setTitle("");
-  setMessage("");
-  setPollQuestion("");
-  setPollOptions("");
-  setLink(""); 
-
-  await loadAnnouncements();
-  setLoading(false);
-};
-
+  };
 
   const deleteAnnouncement = async (id: string) => {
     const { error } = await supabase.from("announcements").delete().eq("id", id);
@@ -126,13 +116,13 @@ export default function AnnouncementsTab() {
           placeholder="Title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-[#2f2484]"
+          className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
         />
         <textarea
           placeholder="Write your message..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="w-full border rounded-lg p-2 h-24 focus:ring-2 focus:ring-[#2f2484]"
+          className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-lg p-2 h-24 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
         />
 
         {/* Optional poll fields */}
@@ -141,29 +131,29 @@ export default function AnnouncementsTab() {
           placeholder="Poll question (optional)"
           value={pollQuestion}
           onChange={(e) => setPollQuestion(e.target.value)}
-          className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-[#2f2484]"
+          className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
         />
         <input
           type="text"
           placeholder="Poll options (comma-separated, e.g. Yes,No,Maybe)"
           value={pollOptions}
           onChange={(e) => setPollOptions(e.target.value)}
-          className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-[#2f2484]"
+          className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
         />
 
-        {/* 🔗 Optional link field */}
+        {/* Optional link field */}
         <input
           type="text"
           placeholder="Link (optional, e.g. https://...)"
           value={link}
           onChange={(e) => setLink(e.target.value)}
-          className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-[#2f2484]"
+          className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
         />
 
         <button
           onClick={addAnnouncement}
           disabled={loading}
-          className="bg-[#2f2484] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#3b35a0] transition"
+          className="bg-[#2f2484] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#3b35a0] dark:hover:bg-[#4b45b0] transition disabled:opacity-70"
         >
           {loading ? "Saving..." : "Add Announcement"}
         </button>
@@ -171,18 +161,18 @@ export default function AnnouncementsTab() {
 
       {/* List of announcements */}
       {announcements.length === 0 ? (
-        <p className="text-gray-500">No announcements yet.</p>
+        <p className="text-gray-500 dark:text-gray-400">No announcements yet.</p>
       ) : (
         <ul className="space-y-4">
           {announcements.map((a) => (
             <li
               key={a.id}
-              className="border rounded-lg p-3 shadow-sm bg-gray-50 dark:bg-gray-700"
+              className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-sm bg-gray-50 dark:bg-gray-700"
             >
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="font-semibold text-[#2f2484]">{a.title}</h3>
-                  <p className="text-gray-700 whitespace-pre-line dark:text-gray-200">
+                  <h3 className="font-semibold text-[#2f2484] dark:text-yellow-400">{a.title}</h3>
+                  <p className="text-gray-700 dark:text-gray-200 whitespace-pre-line">
                     {a.message}
                   </p>
 
@@ -191,19 +181,19 @@ export default function AnnouncementsTab() {
                       href={a.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 underline mt-1 inline-block"
+                      className="text-sm text-blue-600 dark:text-blue-400 underline mt-1 inline-block"
                     >
                       Open link
                     </a>
                   )}
 
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-400 mt-1 dark:text-gray-500">
                     {new Date(a.created_at).toLocaleString()}
                   </p>
                 </div>
                 <button
                   onClick={() => deleteAnnouncement(a.id)}
-                  className="text-red-500 hover:text-red-700 ml-3"
+                  className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-600 ml-3"
                 >
                   ✕
                 </button>

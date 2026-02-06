@@ -1,3 +1,4 @@
+// src\context\UserContext.tsx
 "use client";
 import {
   createContext,
@@ -16,6 +17,7 @@ export type User = {
   position2: string;
   isAdmin: boolean; // always boolean
   id?: string; // 👈 optional unique ID (useful for voting)
+   profilePictureUrl?: string;
 };
 
 type UserContextType = {

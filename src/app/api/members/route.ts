@@ -12,11 +12,21 @@ async function getSheets() {
   return google.sheets({ version: "v4", auth });
 }
 
+// ✅ Normalizer (NEW)
+const normalizeNicknameForCompare = (value: string) =>
+  value
+    .replace(/\u00A0/g, " ")   // Google Sheets NBSP
+    .replace(/\s+/g, " ")     // collapse whitespace
+    .trim()
+    .toLowerCase();
+
+
+
 export async function GET() {
   try {
     const sheets = await getSheets();
     const sheetId = process.env.GOOGLE_SHEET_ID!;
-    const range = "Members!A2:I"; // Expand range to include colla and collaColor
+    const range = "Members!A2:I";
 
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
@@ -25,19 +35,17 @@ export async function GET() {
 
     const rows = result.data.values || [];
     const members = rows.map(
-      (
-        [
-          nickname,
-          passwordHash,
-          name,
-          surname,
-          position,
-          position2,
-          isAdmin,
-          colla,       // new column H
-          collaColor,  // new column I
-        ]
-      ) => ({
+      ([
+        nickname,
+        passwordHash,
+        name,
+        surname,
+        position,
+        position2,
+        isAdmin,
+        colla,
+        collaColor,
+      ]) => ({
         nickname,
         passwordHash,
         name,
@@ -61,7 +69,6 @@ export async function GET() {
   }
 }
 
-// --- NEW POST HANDLER ---
 export async function POST(req: Request) {
   try {
     const sheets = await getSheets();
@@ -78,22 +85,75 @@ export async function POST(req: Request) {
     } = data;
 
     if (!nickname) {
-      return NextResponse.json({ error: "Nickname is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Nickname is required" },
+        { status: 400 }
+      );
     }
 
-    // Append to Members sheet: fill A (nickname), B (passwordHash), C/D empty, E (position), F (position2), H/I colla info
+    // ✅ Normalize nickname (NEW)
+   const normalizedForCompare = normalizeNicknameForCompare(nickname);
+
+    // ✅ Check for existing member (NEW)
+    const existing = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: "Members!A2:A",
+    });
+
+    const rows = existing.data.values || [];
+
+    const memberExists = rows.some(
+      ([existingNickname]) =>
+        normalizeNicknameForCompare(existingNickname || "") ===
+        normalizedForCompare
+    );
+
+    if (memberExists) {
+      return NextResponse.json(
+        { error: "Member already exists" },
+        { status: 409 }
+      );
+    }
+        // ✨ Store nickname with original casing (only trimmed)
+    const storedNickname = nickname.replace(/\u00A0/g, " ").trim();
+
+    // ✅ Append using normalized nickname (CHANGED)
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
       range: "Members!A2:I",
       valueInputOption: "RAW",
       requestBody: {
-        values: [[nickname, passwordHash, "", "", position, position2, "", colla, collaColor]],
+        values: [
+          [
+            storedNickname,
+            passwordHash,
+            "",
+            "",
+            position,
+            position2,
+            "",
+            colla,
+            collaColor,
+          ],
+        ],
       },
     });
 
-    return NextResponse.json({ success: true, member: { nickname, passwordHash, position, colla, collaColor } });
+    return NextResponse.json({
+      success: true,
+      member: {
+        nickname: storedNickname,
+        passwordHash,
+        position,
+        colla,
+        collaColor,
+      },
+    });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Failed to add member" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to add member" },
+      { status: 500 }
+    );
   }
 }

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 
+const normalizeNickname = (value: string) =>
+  value.trim().replace(/\s+/g, " ").toLowerCase();
+
 // 🟩 Helper to normalize date to DD-MM-YYYY
 function normalizeDate(input: string) {
   let day: string, month: string, year: string;
@@ -11,6 +14,7 @@ function normalizeDate(input: string) {
     [ , day, month, year ] = match;
     return `${day}-${month}-${year}`;
   }
+
 
   // If input is ISO (YYYY-MM-DD)
   const isoMatch = input.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -101,7 +105,7 @@ export async function POST(req: Request) {
     const alreadyCheckedIn = rows.some(
       ([d, nickname]) =>
         d?.trim() === formattedDate &&
-        nickname?.toLowerCase().trim() === memberNickname.toLowerCase().trim()
+        normalizeNickname(nickname || "") === normalizeNickname(memberNickname)
     );
 
     if (alreadyCheckedIn) {
@@ -118,7 +122,8 @@ export async function POST(req: Request) {
       valueInputOption: "USER_ENTERED",
       insertDataOption: "INSERT_ROWS",
       requestBody: {
-        values: [[formattedDate, memberNickname.trim(), new Date().toISOString()]],
+       values: [[formattedDate, normalizeNickname(memberNickname), new Date().toISOString()]],
+
       },
     });
 

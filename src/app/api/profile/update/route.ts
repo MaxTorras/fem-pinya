@@ -1,3 +1,4 @@
+// src\app\api\profile\update\route.ts
 import { google } from "googleapis";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
 
     const sheets = google.sheets({ version: "v4", auth });
     const sheetId = process.env.GOOGLE_SHEET_ID!;
-    const range = "Members!A2:D";
+    const range = "Members!A2:J";
 
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
@@ -62,11 +63,12 @@ export async function POST(req: Request) {
       currentHash,
       name || currentName,
       surname || currentSurname,
+      ...currentRow.slice(4),
     ];
 
     await sheets.spreadsheets.values.update({
       spreadsheetId: sheetId,
-      range: `Members!A${rowIndex + 2}:D${rowIndex + 2}`,
+      range: `Members!A${rowIndex + 2}:J${rowIndex + 2}`,
       valueInputOption: "RAW",
       requestBody: { values: [updatedRow] },
     });

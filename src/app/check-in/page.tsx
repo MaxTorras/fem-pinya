@@ -33,6 +33,12 @@ export default function CheckIn() {
     isLoggedIn &&
     nickname.toLowerCase() !== user.nickname.toLowerCase();
 
+    const normalizeNickname = (value: string) =>
+  value
+    .trim()
+    .replace(/\s+/g, " "); // turns "Max   Torras" into "Max Torras"
+
+
   // Sync nickname once user is available (without overwriting edits)
   useEffect(() => {
     if (user && nickname === "") {
@@ -54,20 +60,26 @@ export default function CheckIn() {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setNickname(val);
-    const query = val.toLowerCase();
+  const raw = e.target.value;
+  setNickname(raw);
 
-    setSuggestions(
-      members.filter((m) => {
-        const fullName = `${m.name || ""} ${m.surname || ""}`.toLowerCase();
-        return (
-          m.nickname.toLowerCase().includes(query) ||
-          fullName.includes(query)
-        );
-      })
-    );
-  };
+  const query = normalizeNickname(raw).toLowerCase();
+
+  setSuggestions(
+    members.filter((m) => {
+      const nicknameNorm = normalizeNickname(m.nickname).toLowerCase();
+      const fullName = normalizeNickname(
+        `${m.name || ""} ${m.surname || ""}`
+      ).toLowerCase();
+
+      return (
+        nicknameNorm.includes(query) ||
+        fullName.includes(query)
+      );
+    })
+  );
+};
+
 
   const handleSelectSuggestion = (member: Member) => {
     setNickname(member.nickname);
@@ -75,10 +87,13 @@ export default function CheckIn() {
   };
 
   const handleSubmit = async () => {
-    if (!nickname) {
-      setStatus("⚠️ Please enter your nickname.");
-      return;
-    }
+  const normalizedNickname = normalizeNickname(nickname);
+
+  if (!normalizedNickname) {
+    setStatus("⚠️ Please enter your nickname.");
+    return;
+  }
+
 
     setLoading(true);
     setStatus("");
@@ -90,8 +105,11 @@ export default function CheckIn() {
       const attendanceData = (await attendanceRes.json()) as AttendanceResponse;
 
       const alreadyCheckedIn = attendanceData.records?.some(
-        (r) => r.nickname.toLowerCase() === nickname.toLowerCase()
-      );
+  (r) =>
+    normalizeNickname(r.nickname).toLowerCase() ===
+    normalizedNickname.toLowerCase()
+);
+
 
       if (alreadyCheckedIn) {
         setStatus("⚠️ You’ve already checked in today!");
@@ -100,15 +118,19 @@ export default function CheckIn() {
       }
 
       const memberExists = members.some(
-        (m) => m.nickname.toLowerCase() === nickname.toLowerCase()
-      );
+  (m) =>
+    normalizeNickname(m.nickname).toLowerCase() ===
+    normalizedNickname.toLowerCase()
+);
+
 
       if (!memberExists) {
         const newMember: Member = {
-          nickname,
-          passwordHash: "",
-          position: "New",
-        };
+  nickname: normalizedNickname,
+  passwordHash: "$2b$10$nb52dsdl53wetP/7FFQaKepcd8a9BlA1skSW4ZfgpESEJJbqGrO0W",
+  position: "New",
+};
+
 
         const addMemberRes = await fetch("/api/members", {
           method: "POST",
@@ -131,7 +153,8 @@ export default function CheckIn() {
       const checkInRes = await fetch("/api/attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberNickname: nickname, date }),
+        body: JSON.stringify({ memberNickname: normalizedNickname, date }),
+
       });
 
       if (checkInRes.ok) {

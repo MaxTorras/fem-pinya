@@ -22,6 +22,10 @@ const getContrastColor = (hexColor: string) => {
   return brightness > 150 ? "#000" : "#fff";
 };
 
+const normalizeKey = (value: string) =>
+  value.replace(/\u00A0/g, " ").trim().toLowerCase();
+
+
 export default function MembersTab({
   members,
   attendance,
@@ -52,10 +56,13 @@ export default function MembersTab({
     const byMember: Record<string, string[]> = {};
 
     attendance.forEach((r) => {
-      const dayKey = new Date(r.timestamp).toISOString().slice(0, 10);
-      if (!byMember[r.nickname]) byMember[r.nickname] = [];
-      if (!byMember[r.nickname].includes(dayKey)) byMember[r.nickname].push(dayKey);
-    });
+  const key = normalizeKey(r.nickname);
+  const dayKey = new Date(r.timestamp).toISOString().slice(0, 10);
+
+  if (!byMember[key]) byMember[key] = [];
+  if (!byMember[key].includes(dayKey)) byMember[key].push(dayKey);
+});
+
 
     const calculateStreak = (dates: string[]) => {
       if (!dates.length) return 0;
@@ -73,7 +80,7 @@ export default function MembersTab({
 
     return uniqueMembers
       .map((m) => {
-        const days = byMember[m.nickname] || [];
+        const days = byMember[normalizeKey(m.nickname)] || [];
         const lastMonthCount = days.filter(d => new Date(d) >= oneMonthAgo).length;
         const streak = calculateStreak(days);
 

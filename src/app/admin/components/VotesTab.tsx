@@ -129,10 +129,9 @@ export default function VotesTab({ members }: { members: Member[] }) {
       <div className="border-2 border-[#2f2484] dark:border-yellow-400 rounded p-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
 
         <h3 className="mb-3 font-semibold text-[#2f2484] dark:text-yellow-400 flex items-center gap-2">
-          <CheckCircle size={18} />
-          <span>Coming</span>
-        </h3>
-
+  <CheckCircle size={18} />
+  <span>Coming ({Object.values(comingByPosition).flat().length})</span>
+</h3>
         {!hasComing ? (
           <p className="text-sm text-gray-600">
             No one has voted <span className="font-semibold">coming</span> for this event yet.

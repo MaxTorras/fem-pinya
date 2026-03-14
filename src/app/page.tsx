@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/context/UserContext";
-import NotificationToggleButton from "@/components/NotificationToggleButton";
+
 
 type PollVote = {
   id: string;
@@ -228,7 +228,7 @@ export default function HomePage() {
   return (
     <main className="relative min-h-[70vh] px-4 bg-gray-50 text-gray-900 flex flex-col items-center justify-center text-center overflow-hidden">
       {/* 🎯 Wall of Shame – fixed bottom-right background note */}
-      {wallOfShame.length > 0 && (
+      {/* {wallOfShame.length > 0 && (
   <div
     className="fixed bottom-8 right-6 -rotate-3 pointer-events-none opacity-40 sm:opacity-50 select-none z-30"
   >
@@ -247,7 +247,7 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Foreground content */}
       <div className="relative z-10 flex flex-col items-center space-y-6 w-full">

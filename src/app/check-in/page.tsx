@@ -127,7 +127,7 @@ export default function CheckIn() {
       if (!memberExists) {
         const newMember: Member = {
   nickname: normalizedNickname,
-  passwordHash: "$2b$10$nb52dsdl53wetP/7FFQaKepcd8a9BlA1skSW4ZfgpESEJJbqGrO0W",
+  passwordHash: "$2y$10$/vd8/b.sVq4ljhkf6shNQeA92/MlPX.aOtgmwlGBg8kMnxa5CpdSS",
   position: "New",
 };
 
@@ -154,7 +154,6 @@ export default function CheckIn() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ memberNickname: normalizedNickname, date }),
-
       });
 
       if (checkInRes.ok) {

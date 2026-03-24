@@ -36,6 +36,11 @@ const quickRoles = [
 ];
 
 export default function PinyaPlannerPage() {
+  const normalize = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .trim();
   // --- UI state ---
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -103,10 +108,16 @@ export default function PinyaPlannerPage() {
     fetch(`/api/attendance?date=${selectedDate}`)
       .then(res => res.json())
       .then((data: { records: AttendanceRecord[] }) => {
+        console.log("ATTENDANCE API:", data.records);
+        console.log("SELECTED DATE:", selectedDate);
         if (!mounted) return;
         const presentMembers = data.records
-          .map(r => members.find(m => m.nickname === r.nickname))
-          .filter((m): m is Member => !!m);
+  .map(r =>
+    members.find(
+      m => normalize(m.nickname) === normalize(r.nickname)
+    )
+  )
+  .filter((m): m is Member => !!m);
         setAttendance(presentMembers);
       })
       .catch(err => {
@@ -141,21 +152,31 @@ useEffect(() => {
     try {
       const res = await fetch("/api/events");
       const allEvents = await res.json();
-      const rehearsal = allEvents.find(
-        (e: any) =>
-          ["Rehearsals", "Performances"].includes(e.folder) &&
-          e.date?.slice(0, 10) === rsvpDate
-      );
-      if (!rehearsal) {
-        setRsvpMembers([]);
-        return;
-      }
+      const events = allEvents.filter(
+  (e: any) =>
+    ["Rehearsals", "Performances"].includes(e.folder) &&
+    e.date?.slice(0, 10) === rsvpDate
+);
+      if (!events.length) {
+  setRsvpMembers([]);
+  return;
+}
 
-      const coming = votes
-        .filter(v => v.eventId === rehearsal.id && v.vote === "coming")
-        .map(v => members.find(m => m.nickname === v.nickname))
+const eventIds = events.map((e: any) => e.id);
+
+const coming = votes
+  .filter(
+    v =>
+      eventIds.includes(v.eventId) &&
+      v.vote === "coming"
+  )
+        .map(v =>
+  members.find(
+    m => normalize(m.nickname) === normalize(v.nickname)
+  )
+)
         .filter((m): m is Member => !!m);
-
+console.log("COMING MEMBERS:", coming);
       setRsvpMembers(coming);
     } catch (err) {
       console.error("Failed to find rehearsal event:", err);
@@ -374,24 +395,40 @@ useEffect(() => {
   const nodesWithHandlers = useMemo(() => {
     return nodes.map(n => {
       const member = n.data?.member;
-      const isCheckedIn = !!member && attendance.some(a => a.nickname === member.nickname);
-      const isRsvpComing = !!member && rsvpMembers.some(a => a.nickname === member.nickname);
+      const normalize = (value: string) =>
+  value.trim().replace(/\s+/g, " ").toLowerCase();
+
+const isCheckedIn =
+  !!member &&
+  attendance.some(
+    a => normalize(a.nickname) === normalize(member.nickname)
+  );
+      const isRsvpComing =
+  !!member &&
+  rsvpMembers.some(
+    a => normalize(a.nickname) === normalize(member.nickname)
+  );
 
       return {
-        ...n,
-        key: n.id,
-        data: {
-          ...(n.data ?? {}),
-          onAssign: (m: Member) => assignMemberToNode(n.id, m),
-          onRemove: () => removeMemberFromNode(n.id),
-          onRotate: () => rotateNode(n.id),
-          checkedIn: isCheckedIn,
-          rsvpComing: isRsvpComing,
-          showRotateButton: n.data?.showRotateButton ?? true,
-        },
-      };
+  ...n,
+  key: n.id,
+  data: {
+    ...(n.data ?? {}),
+
+    onAssign: (m: Member) => assignMemberToNode(n.id, m),
+    onRemove: () => removeMemberFromNode(n.id),
+    onRotate: () => rotateNode(n.id),
+
+    checkedIn: isCheckedIn,
+    rsvpComing: isRsvpComing,
+
+    mode: memberSource, // 👈 ADD THIS LINE
+
+    showRotateButton: n.data?.showRotateButton ?? true,
+  },
+};
     });
-  }, [nodes, attendance, rsvpMembers]);
+  }, [nodes, attendance, rsvpMembers, memberSource]);
 
   // --- Member list source ---
   const listSource =

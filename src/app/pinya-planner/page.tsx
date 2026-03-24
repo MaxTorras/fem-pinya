@@ -143,7 +143,7 @@ useEffect(() => {
       const allEvents = await res.json();
       const rehearsal = allEvents.find(
         (e: any) =>
-          e.folder === "Rehearsals" &&
+          ["Rehearsals", "Performances"].includes(e.folder) &&
           e.date?.slice(0, 10) === rsvpDate
       );
       if (!rehearsal) {

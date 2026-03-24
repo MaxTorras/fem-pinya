@@ -64,6 +64,7 @@ export default function PinyaPlannerPage() {
   // --- RSVP-related state ---
   const [votes, setVotes] = useState<{ nickname: string; eventId: string; vote: string }[]>([]);
   const [rsvpMembers, setRsvpMembers] = useState<Member[]>([]);
+  const [rsvpEventIds, setRsvpEventIds] = useState<string[]>([]);
   type MemberSource = "all" | "checkedin" | "rsvp";
   const [memberSource, setMemberSource] = useState<MemberSource>("checkedin");
   const [rsvpDate, setRsvpDate] = useState<string>(new Date().toISOString().split("T")[0]);
@@ -157,19 +158,21 @@ useEffect(() => {
     ["Rehearsals", "Performances"].includes(e.folder) &&
     e.date?.slice(0, 10) === rsvpDate
 );
+
       if (!events.length) {
   setRsvpMembers([]);
   return;
 }
 
-const eventIds = events.map((e: any) => e.id);
+const eventIds = events.map((e: any) => String(e.id));
+setRsvpEventIds(eventIds);
 
 const coming = votes
   .filter(
-    v =>
-      eventIds.includes(v.eventId) &&
-      v.vote === "coming"
-  )
+  v =>
+    eventIds.map(String).includes(String(v.eventId)) &&
+    ["coming", "late"].includes(v.vote.toLowerCase())
+)
         .map(v =>
   members.find(
     m => normalize(m.nickname) === normalize(v.nickname)
@@ -408,6 +411,14 @@ const isCheckedIn =
   rsvpMembers.some(
     a => normalize(a.nickname) === normalize(member.nickname)
   );
+const isLate =
+  !!member &&
+  votes.some(
+    v =>
+      rsvpEventIds.some(id => id == v.eventId) && // 👈 ADD &&
+      v.vote.toLowerCase().includes("late") &&
+      normalize(v.nickname) === normalize(member.nickname)
+  );
 
       return {
   ...n,
@@ -421,6 +432,7 @@ const isCheckedIn =
 
     checkedIn: isCheckedIn,
     rsvpComing: isRsvpComing,
+    late: isLate,
 
     mode: memberSource, // 👈 ADD THIS LINE
 
@@ -428,7 +440,7 @@ const isCheckedIn =
   },
 };
     });
-  }, [nodes, attendance, rsvpMembers, memberSource]);
+  }, [nodes, attendance, rsvpMembers, memberSource, votes, rsvpEventIds]);
 
   // --- Member list source ---
   const listSource =

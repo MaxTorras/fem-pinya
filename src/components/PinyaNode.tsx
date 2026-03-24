@@ -29,6 +29,8 @@ type PinyaNodeProps = {
     rsvpComing?: boolean;
     showRotateButton?: boolean;
     mode?: "all" | "checkedin" | "rsvp";
+    late?: boolean;
+    
   };
 };
 
@@ -144,14 +146,14 @@ console.log("NODE DEBUG:", {
   : data.mode === "checkedin" && data.checkedIn
   ? "3px solid #22c55e"
   : data.mode === "rsvp" && data.rsvpComing
-  ? "3px solid #f97316"
+  ? data.late
+    ? "3px dashed #f97316"
+    : "3px solid #f97316"
   : "2px solid transparent",
 
 boxShadow:
   data.mode === "checkedin" && data.checkedIn
     ? "0 0 10px rgba(34,197,94,0.6)"
-    : data.mode === "rsvp" && data.rsvpComing
-    ? "0 0 10px rgba(249,115,22,0.6)"
     : "none",
       }}
       className="relative flex flex-col items-center justify-center px-2 py-1 rounded shadow cursor-pointer select-none min-w-[70px] min-h-[40px] transition-all duration-200"

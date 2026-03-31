@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/context/UserContext";
+import { ChevronDown, ChevronUp, CheckCircle, Clock, XCircle, Users } from "lucide-react";
 
 
 type PollVote = {
@@ -40,6 +41,8 @@ export default function HomePage() {
   const [showVotes, setShowVotes] = useState<Poll | null>(null);
   const [pulsePollId, setPulsePollId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [comingList, setComingList] = useState<string[]>([]);
+  const [showComingModal, setShowComingModal] = useState(false);
 
   // 🧱 Wall of Shame: people who changed to "not coming" today for today's event(s)
   const [wallOfShame, setWallOfShame] = useState<
@@ -109,10 +112,42 @@ export default function HomePage() {
 
     setWallOfShame(Array.from(map.values()));
   };
+  const fetchComing = async () => {
+  const today = new Date();
+  const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString();
+  const endOfDay = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+
+  const { data: events } = await supabase
+    .from("events")
+    .select("id")
+    .gte("date", startOfDay)
+    .lte("date", endOfDay);
+
+  if (!events || events.length === 0) {
+    setComingList([]);
+    return;
+  }
+
+  const eventIds = events.map((e: any) => e.id);
+
+  const { data: votes } = await supabase
+    .from("votes")
+    .select("nickname, vote")
+    .in("eventId", eventIds);
+
+  if (!votes) return;
+
+  const coming = votes
+    .filter((v: any) => ["coming", "late"].includes(v.vote))
+    .map((v: any) => v.nickname);
+
+  setComingList([...new Set(coming)]);
+};
 
   useEffect(() => {
     fetchData();
     fetchWallOfShame();
+    fetchComing();
 
     const pollsChannel = supabase
       .channel("polls_and_announcements_live")
@@ -163,7 +198,8 @@ export default function HomePage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "votes" },
-        () => fetchWallOfShame()
+        () => {fetchWallOfShame();
+        fetchComing();}
       )
       .subscribe();
 
@@ -223,10 +259,22 @@ export default function HomePage() {
     document.body.style.backgroundColor = "#f9fafb";
     document.body.style.color = "#111827";
   }, []);
-
+useEffect(() => {
+  console.log("COMING LIST:", comingList);
+}, [comingList]);
   // 🧁 UI
   return (
-    <main className="relative min-h-[70vh] px-4 bg-gray-50 text-gray-900 flex flex-col items-center justify-center text-center overflow-hidden">
+    <main className="relative min-h-[70vh] px-4 bg-gray-50 text-gray-900 flex flex-col items-center justify-center text-center overflow-visible">
+      {/* 👥 Coming widget */}
+<div className="w-full max-w-md mb-2">
+  <div
+    onClick={() => setShowComingModal(true)}
+    className="bg-white border border-[#2f2484]/30 shadow-sm rounded-lg px-3 py-2 text-xs cursor-pointer hover:bg-gray-50 flex items-center gap-2 text-[#2f2484] font-semibold"
+  >
+    <CheckCircle size={14} />
+    Coming ({comingList.length})
+  </div>
+</div>
       {/* 🎯 Wall of Shame – fixed bottom-right background note */}
       {/* {wallOfShame.length > 0 && (
   <div
@@ -426,7 +474,34 @@ export default function HomePage() {
             })}
           </div>
         </div>
+      )}{/* 👥 Coming Modal */}
+{showComingModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg shadow-xl p-6 w-[90%] max-w-md text-left relative max-h-[70vh] overflow-y-auto">
+      <button
+        onClick={() => setShowComingModal(false)}
+        className="absolute top-2 right-3 text-gray-500 hover:text-red-500"
+      >
+        ✕
+      </button>
+
+      <h2 className="text-lg font-bold text-[#2f2484] mb-3 flex items-center gap-2">
+        <CheckCircle size={18} />
+        Coming ({comingList.length})
+      </h2>
+
+      {comingList.length > 0 ? (
+        <ul className="text-sm text-gray-700 space-y-1">
+          {comingList.map((nick) => (
+            <li key={nick}>• {nick}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-gray-500">No one coming yet</p>
       )}
+    </div>
+  </div>
+)}
 
       {/* ✅ Toast notification */}
       {toast && (

@@ -26,7 +26,7 @@ export async function GET() {
   try {
     const sheets = await getSheets();
     const sheetId = process.env.GOOGLE_SHEET_ID!;
-    const range = "Members!A2:I";
+    const range = "Members!A2:K";
 
     const result = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
@@ -45,6 +45,8 @@ export async function GET() {
         isAdmin,
         colla,
         collaColor,
+        profilePictureUrl,
+        parent
       ]) => ({
         nickname,
         passwordHash,
@@ -55,6 +57,8 @@ export async function GET() {
         isAdmin: isAdmin?.toLowerCase() === "yes",
         colla: colla || null,
         collaColor: collaColor || null,
+        profilePictureUrl: profilePictureUrl || null,
+        parent: parent || null, // 👈 THIS IS THE KEY
         missingPosition: !position,
       })
     );
@@ -120,7 +124,7 @@ export async function POST(req: Request) {
     // ✅ Append using normalized nickname (CHANGED)
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: "Members!A2:I",
+      range: "Members!A2:K",
       valueInputOption: "RAW",
       requestBody: {
         values: [

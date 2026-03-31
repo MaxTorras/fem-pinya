@@ -4,7 +4,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useContext } from "react";
-import { ChevronDown, ChevronUp, CheckCircle, Clock, XCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, CheckCircle, Clock, XCircle, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
@@ -33,8 +33,10 @@ export default function MainPage() {
   const [monthOpen, setMonthOpen] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [votes, setVotes] = useState<Record<string, Vote>>({});
 
+  // 🔑 key change: votes now stored as eventId_nickname
+  const [votes, setVotes] = useState<Record<string, Vote>>({});
+  const [members, setMembers] = useState<any[]>([]);
   const loadEvents = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -47,23 +49,38 @@ export default function MainPage() {
 
   const loadVotes = async () => {
     if (!user) return;
+
+    
+    // 🔑 key change: load ALL votes (not just user)
     const { data, error } = await supabase
       .from("votes")
-      .select("*")
-      .eq("nickname", user.nickname);
+      .select("*");
 
     if (!error) {
       const newVotes: Record<string, Vote> = {};
       (data || []).forEach((v: any) => {
-        if (v.eventId && v.vote) newVotes[v.eventId] = v.vote;
+        if (v.eventId && v.vote && v.nickname) {
+          newVotes[`${v.eventId}_${v.nickname}`] = v.vote;
+        }
       });
       setVotes(newVotes);
     }
   };
+  const loadMembers = async () => {
+  try {
+    const res = await fetch("/api/members");
+    const data = await res.json();
+
+    setMembers(data.members || []);
+  } catch (err) {
+    console.error("Failed to load members:", err);
+  }
+};
 
   useEffect(() => {
     loadEvents();
     loadVotes();
+    loadMembers();
   }, [user]);
 
   const upcomingEvents = useMemo(
@@ -91,14 +108,31 @@ export default function MainPage() {
   }
 
   const goToToday = () => setSelectedDate(dayjs());
+  const children = members.filter(
+  (m) =>
+    m.parent?.toLowerCase().trim() ===
+    user?.nickname?.toLowerCase().trim()
+);
+console.log("RAW MEMBERS:", members);
+console.log("FIRST MEMBER:", members[0]);
 
-  const handleVote = async (eventId: string, voteValue: Vote) => {
+  // 🔑 key change: allow override nickname
+  const handleVote = async (
+    eventId: string,
+    voteValue: Vote,
+    nicknameOverride?: string
+  ) => {
     if (!user) return;
 
-    setVotes((prev) => ({ ...prev, [eventId]: voteValue }));
+    const nicknameToUse = nicknameOverride || user.nickname;
+
+    setVotes((prev) => ({
+      ...prev,
+      [`${eventId}_${nicknameToUse}`]: voteValue,
+    }));
 
     await supabase.from("votes").upsert(
-      [{ eventId, nickname: user.nickname, vote: voteValue }],
+      [{ eventId, nickname: nicknameToUse, vote: voteValue }],
       { onConflict: '"eventId","nickname"' }
     );
   };
@@ -249,6 +283,7 @@ export default function MainPage() {
         ) : upcomingEvents.length > 0 ? (
           upcomingEvents.map((event) => {
             const isPerformance = event.folder === "Performances";
+            const userKey = `${event.id}_${user?.nickname}`;
 
             return (
               <div
@@ -279,21 +314,45 @@ export default function MainPage() {
 
                 {user && (
                   <div className="flex flex-col gap-2 ml-4">
+                    
                     <button
                       onClick={() => handleVote(event.id, "coming")}
                       className={`p-1 rounded-full ${
-                        votes[event.id] === "coming"
+                        votes[userKey] === "coming"
                           ? "text-green-500"
                           : "text-gray-400"
                       } hover:text-green-500 transition`}
                     >
                       <CheckCircle size={24} />
                     </button>
+{/* CHILDREN */}
+{children.map((child) => {
+  const key = `${event.id}_${child.nickname}`;
+  const isComing = votes[key] === "coming";
 
+  return (
+    <button
+      key={child.nickname}
+      onClick={() =>
+        handleVote(
+          event.id,
+          isComing ? "not coming" : "coming",
+          child.nickname
+        )
+      }
+      className={`p-1 rounded-full ${
+        isComing ? "text-green-500" : "text-gray-400"
+      } hover:text-green-500 transition`}
+      title={child.name || child.nickname}
+    >
+      <Users size={20} />
+    </button>
+  );
+})}
                     <button
                       onClick={() => handleVote(event.id, "late")}
                       className={`p-1 rounded-full ${
-                        votes[event.id] === "late"
+                        votes[userKey] === "late"
                           ? "text-yellow-500"
                           : "text-gray-400"
                       } hover:text-yellow-500 transition`}
@@ -304,7 +363,7 @@ export default function MainPage() {
                     <button
                       onClick={() => handleVote(event.id, "not coming")}
                       className={`p-1 rounded-full ${
-                        votes[event.id] === "not coming"
+                        votes[userKey] === "not coming"
                           ? "text-red-500"
                           : "text-gray-400"
                       } hover:text-red-500 transition`}

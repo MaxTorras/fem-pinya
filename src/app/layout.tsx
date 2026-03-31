@@ -122,7 +122,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </header>
 
           <AdminKeyButton />
-          <main className="pt-20 px-4 flex-1 overflow-y-auto">{children}</main>
+          <main className="pt-24 sm:pt-20 px-4 flex-1 overflow-y-auto">{children}</main>
           <InstallPrompt />
         </UserProvider>
       </body>

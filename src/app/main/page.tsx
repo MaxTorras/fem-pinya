@@ -118,24 +118,40 @@ console.log("FIRST MEMBER:", members[0]);
 
   // 🔑 key change: allow override nickname
   const handleVote = async (
-    eventId: string,
-    voteValue: Vote,
-    nicknameOverride?: string
-  ) => {
-    if (!user) return;
+  eventId: string,
+  voteValue: Vote | null,
+  nicknameOverride?: string
+) => {
+  if (!user) return;
 
-    const nicknameToUse = nicknameOverride || user.nickname;
+  const nicknameToUse = nicknameOverride || user.nickname;
+  const key = `${eventId}_${nicknameToUse}`;
 
-    setVotes((prev) => ({
-      ...prev,
-      [`${eventId}_${nicknameToUse}`]: voteValue,
-    }));
+  // ✅ UI update
+  setVotes((prev) => {
+    const updated = { ...prev };
+    if (voteValue === null) {
+      delete updated[key];
+    } else {
+      updated[key] = voteValue;
+    }
+    return updated;
+  });
 
+  // ✅ DB update
+  if (voteValue === null) {
+    await supabase
+      .from("votes")
+      .delete()
+      .eq("eventId", eventId)
+      .eq("nickname", nicknameToUse);
+  } else {
     await supabase.from("votes").upsert(
       [{ eventId, nickname: nicknameToUse, vote: voteValue }],
       { onConflict: '"eventId","nickname"' }
     );
-  };
+  }
+};
 
   return (
     <main className="p-6 max-w-2xl mx-auto space-y-6">
@@ -328,22 +344,31 @@ console.log("FIRST MEMBER:", members[0]);
 {/* CHILDREN */}
 {children.map((child) => {
   const key = `${event.id}_${child.nickname}`;
-  const isComing = votes[key] === "coming";
+  const vote = votes[key];
 
   return (
     <button
       key={child.nickname}
-      onClick={() =>
-        handleVote(
-          event.id,
-          isComing ? "not coming" : "coming",
-          child.nickname
-        )
-      }
-      className={`p-1 rounded-full ${
-        isComing ? "text-green-500" : "text-gray-400"
-      } hover:text-green-500 transition`}
-      title={child.name || child.nickname}
+      onClick={() => {
+        let next: Vote | null;
+
+        if (!vote) next = "coming";
+        else if (vote === "coming") next = "late";
+        else if (vote === "late") next = "not coming";
+        else next = null;
+
+        handleVote(event.id, next, child.nickname);
+      }}
+      className={`p-1 rounded-full transition ${
+        vote === "coming"
+          ? "text-green-500"
+          : vote === "late"
+          ? "text-yellow-500"
+          : vote === "not coming"
+          ? "text-red-500"
+          : "text-gray-400"
+      } hover:opacity-80`}
+      title={`${child.name || child.nickname} - ${vote || "no answer"}`}
     >
       <Users size={20} />
     </button>

@@ -42,6 +42,7 @@ export default function HomePage() {
   const [pulsePollId, setPulsePollId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [comingList, setComingList] = useState<string[]>([]);
+  const [comingDate, setComingDate] = useState<string | null>(null);
   const [showComingModal, setShowComingModal] = useState(false);
 
   // 🧱 Wall of Shame: people who changed to "not coming" today for today's event(s)
@@ -112,24 +113,41 @@ export default function HomePage() {
 
     setWallOfShame(Array.from(map.values()));
   };
-  const fetchComing = async () => {
-  const today = new Date();
-  const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-  const endOfDay = new Date(today.setHours(23, 59, 59, 999)).toISOString();
-
-  const { data: events } = await supabase
+ const fetchComing = async () => {
+  // 1️⃣ Get all events ordered
+  const { data: events, error } = await supabase
     .from("events")
-    .select("id")
-    .gte("date", startOfDay)
-    .lte("date", endOfDay);
+    .select("id, date, time")
+    .order("date", { ascending: true });
 
-  if (!events || events.length === 0) {
+  if (error || !events || events.length === 0) {
     setComingList([]);
     return;
   }
 
-  const eventIds = events.map((e: any) => e.id);
+  const now = new Date();
 
+  // 2️⃣ Find next event (time-aware)
+  const nextEvent = events.find((e: any) => {
+    const eventDateTime = new Date(
+      `${e.date}T${e.time === "TBC" ? "23:59:00" : e.time}`
+    );
+    return eventDateTime > now;
+  });
+
+  if (!nextEvent) {
+    setComingList([]);
+    return;
+  }
+
+  const targetDate = nextEvent.date;
+  setComingDate(targetDate);
+
+  // 3️⃣ Get all events that day
+  const eventsThatDay = events.filter((e: any) => e.date === targetDate);
+  const eventIds = eventsThatDay.map((e: any) => e.id);
+
+  // 4️⃣ Get votes
   const { data: votes } = await supabase
     .from("votes")
     .select("nickname, vote")
@@ -262,6 +280,15 @@ export default function HomePage() {
 useEffect(() => {
   console.log("COMING LIST:", comingList);
 }, [comingList]);
+
+const formatComingDate = (date: string | null) => {
+  if (!date) return "";
+  return new Date(date).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+};
   // 🧁 UI
   return (
     <main className="relative min-h-[70vh] px-4 bg-gray-50 text-gray-900 flex flex-col items-center justify-center text-center overflow-visible">
@@ -272,7 +299,7 @@ useEffect(() => {
     className="bg-white border border-[#2f2484]/30 shadow-sm rounded-lg px-3 py-2 text-xs cursor-pointer hover:bg-gray-50 flex items-center gap-2 text-[#2f2484] font-semibold"
   >
     <CheckCircle size={14} />
-    Coming ({comingList.length})
+    Coming {comingDate ? `(${formatComingDate(comingDate)})` : ""} ({comingList.length})
   </div>
 </div>
       {/* 🎯 Wall of Shame – fixed bottom-right background note */}
@@ -487,7 +514,7 @@ useEffect(() => {
 
       <h2 className="text-lg font-bold text-[#2f2484] mb-3 flex items-center gap-2">
         <CheckCircle size={18} />
-        Coming ({comingList.length})
+        Coming {comingDate ? `– ${formatComingDate(comingDate)}` : ""} ({comingList.length})
       </h2>
 
       {comingList.length > 0 ? (

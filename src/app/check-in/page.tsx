@@ -1,9 +1,11 @@
+// src\app\check-in
 "use client";
 
 import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { Quicksand } from "next/font/google";
 import { UserContext } from "@/context/UserContext";
+import { supabase } from "@/lib/supabase";
 
 const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "600", "700"] });
 
@@ -99,6 +101,28 @@ export default function CheckIn() {
     setStatus("");
     const params = new URLSearchParams(window.location.search);
     const date = params.get("date") || new Date().toISOString().split("T")[0];
+    // 🚫 Check if there is a rehearsal today
+const { data: eventsToday, error: eventsError } = await supabase
+  .from("events")
+  .select("id, folder")
+  .eq("date", date);
+
+if (eventsError) {
+  setStatus("❌ Error checking events.");
+  setLoading(false);
+  return;
+}
+
+// ✅ Only allow rehearsals
+const hasRehearsal = (eventsToday || []).some(
+  (e: any) => e.folder === "Rehearsals"
+);
+
+if (!hasRehearsal) {
+  setStatus("⚠️ No rehearsal today — check-in disabled.");
+  setLoading(false);
+  return;
+}
 
     try {
       const attendanceRes = await fetch(`/api/attendance?date=${date}`);

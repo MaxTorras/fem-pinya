@@ -6,6 +6,8 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/context/UserContext";
 import { ChevronDown, ChevronUp, CheckCircle, Clock, XCircle, Users } from "lucide-react";
+import MembersTab from "@/app/admin/components/MembersTab";
+
 
 
 type PollVote = {
@@ -44,6 +46,7 @@ export default function HomePage() {
   const [comingList, setComingList] = useState<string[]>([]);
   const [comingDate, setComingDate] = useState<string | null>(null);
   const [showComingModal, setShowComingModal] = useState(false);
+  const [attendance, setAttendance] = useState<any[]>([]);
 
   // 🧱 Wall of Shame: people who changed to "not coming" today for today's event(s)
   const [wallOfShame, setWallOfShame] = useState<
@@ -52,20 +55,22 @@ export default function HomePage() {
 
   // 🔁 Fetch announcements + polls + votes + members
   const fetchData = async () => {
-    const [{ data: annData }, { data: memData }] = await Promise.all([
-      supabase
-        .from("announcements")
-        .select(`
-          *,
-          polls(id, question, options, poll_votes(id, user_id, option_chosen, created_at))
-        `)
-        .order("created_at", { ascending: false })
-        .limit(5),
-      supabase.from("members").select("nickname"),
-    ]);
+    const [{ data: annData }, { data: memData }, { data: attData }] = await Promise.all([
+  supabase
+    .from("announcements")
+    .select(`
+      *,
+      polls(id, question, options, poll_votes(id, user_id, option_chosen, created_at))
+    `)
+    .order("created_at", { ascending: false })
+    .limit(5),
+  supabase.from("members").select("*"),
+  supabase.from("attendance").select("date, nickname, timestamp"),
+]);
 
     setAnnouncements(JSON.parse(JSON.stringify(annData || [])));
     setMembers(memData || []);
+    setAttendance(attData || []);
     setLoading(false);
   };
 
@@ -290,9 +295,16 @@ const formatComingDate = (date: string | null) => {
   });
 };
   // 🧁 UI
+
   return (
+    
     <main className="relative min-h-[70vh] px-4 bg-gray-50 text-gray-900 flex flex-col items-center justify-center text-center overflow-visible">
+                {/* 👥 Members & Attendance
+<div className="bg-white rounded-2xl shadow-lg p-6 max-w-md w-full border-l-4 border-green-600">
+  <MembersTab members={members} attendance={attendance} />
+</div> */}
       {/* 👥 Coming widget */}
+      
 <div className="w-full max-w-md mb-2">
   <div
     onClick={() => setShowComingModal(true)}
@@ -347,6 +359,7 @@ const formatComingDate = (date: string | null) => {
           </Link>
           
         </div>
+
 
         {/* 📢 Announcements */}
         <div className="bg-white rounded-2xl shadow-lg p-6 max-w-md w-full border-l-4 border-[#2f2484]">

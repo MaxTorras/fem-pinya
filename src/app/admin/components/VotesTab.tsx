@@ -20,6 +20,10 @@ export default function VotesTab({ members }: { members: Member[] }) {
   const [events, setEvents] = useState<Event[]>([]);
   const [votes, setVotes] = useState<VoteRecord[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<string>("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [showRangeTable, setShowRangeTable] = useState(false);
+  const [positionFilter, setPositionFilter] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -101,14 +105,181 @@ export default function VotesTab({ members }: { members: Member[] }) {
   // We will only render these statuses as cards (no separate "coming" card)
   const visibleStatuses: VoteStatus[] = ["late", "not coming", "no answer"];
 
+
+const eventsInRange = useMemo(() => {
+  if (!fromDate || !toDate) return [];
+
+  return events.filter((e) => {
+    const d = new Date(e.date);
+    return d >= new Date(fromDate) && d <= new Date(toDate);
+  });
+}, [events, fromDate, toDate]);
+const normalizeKey = (value: string) =>
+  value.replace(/\u00A0/g, " ").trim().toLowerCase();
+
+const voteMap = useMemo(() => {
+  const map: Record<string, Record<string, VoteStatus>> = {};
+
+  votes.forEach((v) => {
+    const memberKey = normalizeKey(v.nickname);
+
+    if (!map[memberKey]) map[memberKey] = {};
+    map[memberKey][v.eventId] = v.vote;
+  });
+
+  return map;
+}, [votes]);
+const uniquePositions = useMemo(() => {
+  return [...new Set(members.map(m => m.position || "Unknown"))];
+}, [members]);
+
+const membersWithVotesInRange = useMemo(() => {
+  if (!eventsInRange.length) return [];
+
+  return members.filter((m) => {
+    const key = normalizeKey(m.nickname);
+
+    const hasVote = eventsInRange.some(
+      (e) => voteMap[key]?.[e.id]
+    );
+
+    const matchesPosition =
+  positionFilter.length === 0 || // nothing selected = show all
+  positionFilter.includes(m.position || "Unknown");
+
+    return hasVote && matchesPosition;
+  });
+}, [members, eventsInRange, voteMap, positionFilter]);
+
+const formatDateWithDay = (dateStr: string) => {
+  const date = new Date(dateStr);
+
+  const day = date.toLocaleDateString("en-GB", { weekday: "short" }); // Mon
+  const formatted = date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+  }); // 25/03
+
+  return `${day} ${formatted}`;
+};
+
   return (
     <div className="space-y-6">
       <h2 className="text-lg font-semibold text-[#2f2484] dark:text-yellow-400 mb-2">
   Event Attendance
 </h2>
 
+<button
+  onClick={() => setShowRangeTable(!showRangeTable)}
+  className="px-3 py-1 border rounded border-[#2f2484] dark:border-yellow-400 
+             text-[#2f2484] dark:text-yellow-400 
+             hover:bg-yellow-400 hover:text-[#2f2484] transition"
+>
+  {showRangeTable ? "Hide Attendance Table" : "Show Attendance Table"}
+</button>
+{showRangeTable && (
+  <>
+<div className="flex gap-2 items-center flex-wrap">
+  <input
+    type="date"
+    value={fromDate}
+    onChange={(e) => setFromDate(e.target.value)}
+    className="border p-2 rounded"
+  />
+  <span>to</span>
+  <input
+    type="date"
+    value={toDate}
+    onChange={(e) => setToDate(e.target.value)}
+    className="border p-2 rounded"
+  />
+</div>
+<div className="mt-2">
+  <p className="text-sm font-semibold mb-1">Filter by position:</p>
 
-      {/* Event Selector */}
+  <div className="flex flex-wrap gap-2">
+    {uniquePositions.map((pos) => {
+      const isSelected = positionFilter.includes(pos);
+
+      return (
+        <label
+          key={pos}
+          className={`px-2 py-1 border rounded cursor-pointer text-sm
+            ${isSelected 
+              ? "bg-yellow-400 text-[#2f2484]" 
+              : "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"}
+          `}
+        >
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => {
+              if (isSelected) {
+                setPositionFilter(positionFilter.filter(p => p !== pos));
+              } else {
+                setPositionFilter([...positionFilter, pos]);
+              }
+            }}
+            className="hidden"
+          />
+          {pos}
+        </label>
+      );
+    })}
+  </div>
+</div>
+
+<div></div>
+
+      
+{eventsInRange.length > 0 && (
+  <div className="overflow-auto border rounded p-2 bg-white dark:bg-gray-800">
+    <table className="min-w-full text-sm text-center">
+      <thead>
+        <tr>
+          <th className="p-2 text-left">Member</th>
+          {eventsInRange.map((e) => (
+  <th key={e.id} className="p-2">
+    {formatDateWithDay(e.date)}
+  </th>
+))}
+        </tr>
+      </thead>
+      <tbody>
+        {membersWithVotesInRange.map((m) => {
+          const key = normalizeKey(m.nickname);
+
+          return (
+            <tr key={m.nickname}>
+              <td className="p-2 text-left font-semibold">
+                {m.nickname}
+              </td>
+
+              {eventsInRange.map((e) => {
+                const vote = voteMap[key]?.[e.id];
+
+                let symbol = "";
+                if (vote === "coming") symbol = "✅";
+                else if (vote === "late") symbol = "⏰";
+                else if (vote === "not coming") symbol = "❌";
+
+                return (
+                  <td key={e.id} className="p-2">
+                    {symbol}
+                  </td>
+                );
+              })}
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+)}
+</>
+)}
+<div></div>
+{/* Event Selector */}
       <select
   className="border-2 border-[#2f2484] dark:border-yellow-400 rounded p-2 mb-4 
              bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 
@@ -124,7 +295,6 @@ export default function VotesTab({ members }: { members: Member[] }) {
           </option>
         ))}
       </select>
-
       {/* Coming by Position (top, primary view) */}
       <div className="border-2 border-[#2f2484] dark:border-yellow-400 rounded p-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
 

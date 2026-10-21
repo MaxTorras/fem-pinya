@@ -420,7 +420,7 @@ const formatComingDate = (date: string | null) => {
         onClick={() => setShowMembersModal(true)}
         className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-full shadow-md transition w-full sm:w-auto"
       >
-        Members & Attendance
+        Hall of Fame
       </button>
           
         </div>

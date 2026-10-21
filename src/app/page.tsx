@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useUser } from "@/context/UserContext";
-import { ChevronDown, ChevronUp, CheckCircle, Clock, XCircle, Users } from "lucide-react";
 import MembersTab from "@/app/admin/components/MembersTab";
+import { ChevronDown, ChevronUp, CheckCircle, Clock, XCircle, Users } from "lucide-react";
 
 
 
@@ -34,10 +34,22 @@ type Announcement = {
   polls?: Poll[];
 };
 
+type Member = {
+  nickname: string;
+  name?: string;
+  surname?: string;
+  position?: string | null;
+  position2?: string | null;
+  colla?: string | null;
+  collaColor?: string | null;
+  profilePictureUrl?: string | null;
+  parent?: string | null;
+};
+
 export default function HomePage() {
   const { user } = useUser();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [members, setMembers] = useState<{ nickname: string }[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState<string | null>(null);
   const [showVotes, setShowVotes] = useState<Poll | null>(null);
@@ -47,32 +59,78 @@ export default function HomePage() {
   const [comingDate, setComingDate] = useState<string | null>(null);
   const [showComingModal, setShowComingModal] = useState(false);
   const [attendance, setAttendance] = useState<any[]>([]);
+  const [showMembersModal, setShowMembersModal] = useState(false);
+  
 
   // 🧱 Wall of Shame: people who changed to "not coming" today for today's event(s)
   const [wallOfShame, setWallOfShame] = useState<
     { nickname: string; eventTitle: string }[]
   >([]);
 
-  // 🔁 Fetch announcements + polls + votes + members
-  const fetchData = async () => {
-    const [{ data: annData }, { data: memData }, { data: attData }] = await Promise.all([
-  supabase
-    .from("announcements")
-    .select(`
-      *,
-      polls(id, question, options, poll_votes(id, user_id, option_chosen, created_at))
-    `)
-    .order("created_at", { ascending: false })
-    .limit(5),
-  supabase.from("members").select("*"),
-  supabase.from("attendance").select("date, nickname, timestamp"),
-]);
+  // Fetch announcements, polls, members and attendance
+const fetchData = async () => {
+  try {
+  
+const [announcementsResult, membersResponse, attendanceResponse] =
+  await Promise.all([
+    supabase
+      .from("announcements")
+      .select(`
+        *,
+        polls(
+          id,
+          question,
+          options,
+          poll_votes(id, user_id, option_chosen, created_at)
+        )
+      `)
+      .order("created_at", { ascending: false })
+      .limit(5),
 
-    setAnnouncements(JSON.parse(JSON.stringify(annData || [])));
-    setMembers(memData || []);
-    setAttendance(attData || []);
+    fetch("/api/members"),
+
+    fetch("/api/attendance"),
+  ]);
+
+
+    if (announcementsResult.error) {
+      console.error(
+        "Error fetching announcements:",
+        announcementsResult.error
+      );
+    }
+
+    // if (attendanceResponse.error) {
+    //   console.error(
+    //     "Error fetching attendance:",
+    //     attendanceResult.error
+    //   );
+    // }
+
+if (!membersResponse.ok) {
+  throw new Error("Failed to fetch members from Google Sheets");
+}
+
+if (!attendanceResponse.ok) {
+  throw new Error("Failed to fetch attendance from Google Sheets");
+}
+
+const membersData = await membersResponse.json();
+const attendanceData = await attendanceResponse.json();
+
+console.log("Members loaded:", membersData.members?.length);
+console.log("Attendance records loaded:", attendanceData.records?.length);
+
+setAnnouncements(announcementsResult.data || []);
+setMembers(membersData.members || []);
+setAttendance(attendanceData.records || []);
+
+  } catch (error) {
+    console.error("Error fetching homepage data:", error);
+  } finally {
     setLoading(false);
-  };
+  }
+};
 
   // 🔥 Fetch Wall of Shame for today (ANY event type)
   const fetchWallOfShame = async () => {
@@ -357,6 +415,13 @@ const formatComingDate = (date: string | null) => {
               View Pinyes
             </button>
           </Link>
+
+          <button
+        onClick={() => setShowMembersModal(true)}
+        className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-full shadow-md transition w-full sm:w-auto"
+      >
+        Members & Attendance
+      </button>
           
         </div>
 
@@ -475,6 +540,40 @@ const formatComingDate = (date: string | null) => {
           )}
         </div>
       </div>
+
+      {/* 👥 Members & Attendance Modal */}
+      {showMembersModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowMembersModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6 text-left relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header and close button */}
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h2 className="text-xl font-bold text-[#2f2484]">
+                Members & Attendance
+              </h2>
+
+              <button
+                onClick={() => setShowMembersModal(false)}
+                aria-label="Close members and attendance"
+                className="text-gray-500 hover:text-red-600 text-2xl font-bold leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Existing members table */}
+            <MembersTab
+              members={members}
+              attendance={attendance}
+            />
+          </div>
+        </div>
+      )}
 
       {/* 👁️ Votes Modal */}
       {showVotes && (

@@ -1,14 +1,18 @@
+// src\app\admin\components\MembersTab.tsx
 "use client";
 
 import { useMemo, useState } from "react";
 
-type Member = { 
-  nickname: string; 
-  name?: string; 
-  surname?: string; 
-  position?: string;
-  colla?: string;
-  collaColor?: string;
+type Member = {
+  nickname: string;
+  name?: string;
+  surname?: string;
+  position?: string | null;
+  position2?: string | null;
+  colla?: string | null;
+  collaColor?: string | null;
+  profilePictureUrl?: string | null;
+  parent?: string | null;
 };
 type AttendanceRecord = { date: string; nickname: string; timestamp: string };
 
